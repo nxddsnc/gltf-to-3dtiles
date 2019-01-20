@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
                 printf("Input error\n");
                 return -1;
             }
-            outputPath = argv[i + 1];
+            inputPath = argv[i + 1];
         }
         else if (std::strcmp(argv[i], "-o") == 0)
         {
