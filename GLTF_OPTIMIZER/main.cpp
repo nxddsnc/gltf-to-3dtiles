@@ -15,6 +15,7 @@ using namespace tinygltf;
 
 using namespace vcg;
 using namespace tri;
+using namespace std;
 
 // The class prototypes.
 class MyVertex;
@@ -26,6 +27,7 @@ struct MyUsedTypes : public UsedTypes<Use<MyVertex>::AsVertexType, Use<MyEdge>::
 class MyVertex : public Vertex< MyUsedTypes,
     vertex::VFAdj,
     vertex::Coord3f,
+    vertex::Normal3f,
     vertex::Mark,
     vertex::Qualityf,
     vertex::BitFlags  > {
@@ -98,7 +100,6 @@ int main(int argc, char *argv[])
     std::string warn;
     bool ret = loader.LoadASCIIFromFile(model, &err, &warn, inputPath);
     
-    MyMesh testMesh;
     for (int i = 0; i < model->meshes.size(); ++i)
     {
         MyMesh myMesh;
@@ -129,6 +130,7 @@ int main(int argc, char *argv[])
 
         std::vector<VertexPointer> index;
         VertexIterator vi = Allocator<MyMesh>::AddVertices(myMesh, positionAccessor.count);
+        
         for (int j = 0; j < positionAccessor.count; ++j)
         {
             (*vi).P()[0] = positions[j * 3 + 0];
@@ -159,8 +161,61 @@ int main(int argc, char *argv[])
             (*fi).V(2) = index[indices[j * 3 + 2]];
             ++fi;
         }
-        vcg::tri::io::ExporterPLY<MyMesh>::Save(myMesh, outputPath);
 
+
+        /**********************   decimation    *******************************/
+        TriEdgeCollapseQuadricParameter qparams;
+        qparams.QualityThr = .3;
+        //double TargetError = std::numeric_limits<double >::max();
+        double TargetError = 0.5;
+        qparams.QualityCheck = true;
+        qparams.HardQualityCheck = false;
+        qparams.NormalCheck = false;
+        qparams.AreaCheck = false;
+        qparams.OptimalPlacement = false;
+        qparams.ScaleIndependent = false;
+        qparams.PreserveBoundary = false;
+        qparams.PreserveTopology = false;
+        qparams.QualityQuadric = false;
+        qparams.QualityWeight = false;
+        //qparams.QualityQuadricWeight = atof(argv[i] + 2);
+        //qparams.QualityWeightFactor = atof(argv[i] + 2);
+        //qparams.QualityThr = atof(argv[i] + 2);
+        //qparams.HardQualityThr = atof(argv[i] + 2);
+        //qparams.NormalThrRad = math::ToRad(atof(argv[i] + 2));
+        //qparams.BoundaryQuadricWeight = atof(argv[i] + 2);
+        //qparams.QuadricEpsilon = atof(argv[i] + 2);
+
+        float FinalSize = 0.5 * faceNum;
+        TargetError = 100;// atof(argv[i] + 2);
+        bool CleaningFlag = true;
+
+        vcg::tri::UpdateBounding<MyMesh>::Box(myMesh);
+
+        // decimator initialization
+        vcg::LocalOptimization<MyMesh> DeciSession(myMesh, &qparams);
+
+        int t1 = clock();
+        DeciSession.Init<MyTriEdgeCollapse>();
+        int t2 = clock();
+        printf("Initial Heap Size %i\n", int(DeciSession.h.size()));
+
+        DeciSession.SetTargetSimplices(FinalSize);
+        DeciSession.SetTimeBudget(0.005f);
+        DeciSession.SetTargetOperations(100000);
+        //if (TargetError< std::numeric_limits<float>::max()) DeciSession.SetTargetMetric(TargetError);
+
+        DeciSession.DoOptimization();
+        //DeciSession.DoOptimization();
+        //while (DeciSession.DoOptimization() && myMesh.fn>FinalSize && DeciSession.currMetric < TargetError)
+        //    printf("Current Mesh size %7i heap sz %9i err %9g \n", myMesh.fn, int(DeciSession.h.size()), DeciSession.currMetric);
+
+        printf("mesh  %d %d Error %g \n", myMesh.vn, myMesh.fn, DeciSession.currMetric);
+        //printf("\nCompleted in (%5.3f+%5.3f) sec\n", float(t2 - t1) / CLOCKS_PER_SEC, float(t3 - t2) / CLOCKS_PER_SEC);
+    
+        char testOutputPath[1024];
+        sprintf(testOutputPath, "../data/after-%d.ply", i);
+        vcg::tri::io::ExporterPLY<MyMesh>::Save(myMesh, testOutputPath);
     }
 
     // step0. Read gltf into vcglib mesh.
@@ -171,7 +226,6 @@ int main(int argc, char *argv[])
     // Since we use quadratic error method, the gaps between maybe closed. 
 
     // step3. Merge the meshes and add "batchId" in vertex attributes.
-    printf("output file path: %s\n", outputPath);
 
     return 0;
 }
