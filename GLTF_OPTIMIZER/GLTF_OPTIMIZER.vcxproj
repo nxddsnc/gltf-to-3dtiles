@@ -22,7 +22,7 @@
     <ProjectGuid>{BE92CA2C-27B9-4A21-8815-ADB5A2E6C9D0}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>GLTF_OPTIMIZER</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.10240.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -104,7 +104,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <SDLCheck>
       </SDLCheck>
-      <AdditionalIncludeDirectories>./tinyGltf;$(VCG_LIB);$(VCG_LIB)/eigenlib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./tinyGltf;$(VCG_LIB);$(VCG_LIB)\eigenlib</AdditionalIncludeDirectories>
       <CompileAs>CompileAsCpp</CompileAs>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -141,7 +141,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_NONSTDC_NO_DEPRECATE ;NDEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>./tinyGltf;$(VCG_LIB);$(VCG_LIB)/eigenlib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./tinyGltf;$(VCG_LIB);$(VCG_LIB)\eigenlib</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>

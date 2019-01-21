@@ -4,15 +4,14 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 // #define TINYGLTF_NOEXCEPTION // optional. disable exception handling.
 #include <iostream>
-// stuff to define the mesh
 #include "vcg/complex/complex.h"
 #include "wrap/io_trimesh/export_ply.h"
-// local optimization
 #include <vcg/complex/algorithms/local_optimization.h>
 #include <vcg/complex/algorithms/local_optimization/tri_edge_collapse_quadric.h>
 #include "tiny_gltf.h"
-using namespace tinygltf;
+#include <unordered_map>
 
+using namespace tinygltf;
 using namespace vcg;
 using namespace tri;
 using namespace std;
@@ -57,7 +56,6 @@ public:
     inline MyTriEdgeCollapse(const VertexPair &p, int i, BaseParameterClass *pp) :TECQ(p, i, pp) {}
 };
 
-
 typedef typename MyMesh::VertexPointer VertexPointer;
 typedef typename MyMesh::ScalarType ScalarType;
 typedef typename MyMesh::VertexType VertexType;
@@ -101,6 +99,12 @@ int main(int argc, char *argv[])
     std::string warn;
     bool ret = loader.LoadASCIIFromFile(model, &err, &warn, inputPath);
     
+
+	TriEdgeCollapseQuadricParameter qparams;
+	qparams.QualityThr = .3;
+	qparams.PreserveBoundary = true; // Perserve mesh boundary
+	qparams.PreserveTopology = false;
+
     for (int i = 0; i < model->meshes.size(); ++i)
     {
         MyMesh myMesh;
@@ -165,53 +169,18 @@ int main(int argc, char *argv[])
 
 
         /**********************   decimation    *******************************/
-        TriEdgeCollapseQuadricParameter qparams;
-        qparams.QualityThr = .3;
-        //double TargetError = std::numeric_limits<double >::max();
-        double TargetError = 0.5;
-        qparams.QualityCheck = true;
-        qparams.HardQualityCheck = false;
-        qparams.NormalCheck = false;
-        qparams.AreaCheck = false;
-        qparams.OptimalPlacement = false;
-        qparams.ScaleIndependent = false;
-        qparams.PreserveBoundary = true; // Perserve mesh boundary
-        qparams.PreserveTopology = false;
-        qparams.QualityQuadric = false;
-        qparams.QualityWeight = false;
-        //qparams.QualityQuadricWeight = atof(argv[i] + 2);
-        //qparams.QualityWeightFactor = atof(argv[i] + 2);
-        //qparams.QualityThr = atof(argv[i] + 2);
-        //qparams.HardQualityThr = atof(argv[i] + 2);
-        //qparams.NormalThrRad = math::ToRad(atof(argv[i] + 2));
-        //qparams.BoundaryQuadricWeight = atof(argv[i] + 2);
-        //qparams.QuadricEpsilon = atof(argv[i] + 2);
+		// decimator initialization
+		vcg::LocalOptimization<MyMesh> deciSession(myMesh, &qparams);
+		deciSession.Init<MyTriEdgeCollapse>();
+		//deciSession.SetTargetVertices()
+		deciSession.SetTargetSimplices(faceNum * 0.5); // Target face number;
+        deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
 
-        float FinalSize = 0.5 * faceNum;
-        TargetError = 100;// atof(argv[i] + 2);
-        bool CleaningFlag = true;
-
-        vcg::tri::UpdateBounding<MyMesh>::Box(myMesh);
-
-        // decimator initialization
-        vcg::LocalOptimization<MyMesh> DeciSession(myMesh, &qparams);
-
-        int t1 = clock();
-        DeciSession.Init<MyTriEdgeCollapse>();
-        int t2 = clock();
-        printf("Initial Heap Size %i\n", int(DeciSession.h.size()));
-
-        DeciSession.SetTargetSimplices(FinalSize); // Target face number;
-        DeciSession.SetTimeBudget(0.5f); // Time budget for each cycle
-        DeciSession.SetTargetOperations(100000);
-        //if (TargetError< std::numeric_limits<float>::max()) DeciSession.SetTargetMetric(TargetError);
-
-        DeciSession.DoOptimization();
-        //DeciSession.DoOptimization();
+        deciSession.DoOptimization();
         //while (DeciSession.DoOptimization() && myMesh.fn>FinalSize && DeciSession.currMetric < TargetError)
         //    printf("Current Mesh size %7i heap sz %9i err %9g \n", myMesh.fn, int(DeciSession.h.size()), DeciSession.currMetric);
 
-        printf("mesh  %d %d Error %g \n", myMesh.vn, myMesh.fn, DeciSession.currMetric);
+        printf("mesh  %d %d Error %g \n", myMesh.vn, myMesh.fn, deciSession.currMetric);
         //printf("\nCompleted in (%5.3f+%5.3f) sec\n", float(t2 - t1) / CLOCKS_PER_SEC, float(t3 - t2) / CLOCKS_PER_SEC);
     
         char testOutputPath[1024];
@@ -223,15 +192,17 @@ int main(int argc, char *argv[])
 
 
     /***********************  step1. Figure out the material with different ids and have the same value. ********************************/
-
     // TODO:
-
+	/*for (int i = 0;i < model->meshes.size(); ++i)
+	{
+		int materialIdx = model->meshes[i].primitives[0].material;
+		
+	}*/
+	
     /***********************  step1. Figure out the material with different ids and have the same value. ********************************/
 
     /***********************  step2. Simpilify meshes. ( This should be done before the mesh is merged.  ********************************/
     // Since we use quadratic error method, the gaps between maybe closed. 
-    
-    
     
     
     /***********************  step2. Simpilify meshes. ( This should be done before the mesh is merged.  ********************************/
