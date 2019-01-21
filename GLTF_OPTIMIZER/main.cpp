@@ -94,6 +94,7 @@ int main(int argc, char *argv[])
 
     printf("intput file path: %s\n", inputPath);
     
+    /****************************************  step0. Read gltf into vcglib mesh.  ******************************************************/
     Model *model = new Model;
     TinyGLTF loader;
     std::string err;
@@ -174,7 +175,7 @@ int main(int argc, char *argv[])
         qparams.AreaCheck = false;
         qparams.OptimalPlacement = false;
         qparams.ScaleIndependent = false;
-        qparams.PreserveBoundary = false;
+        qparams.PreserveBoundary = true; // Perserve mesh boundary
         qparams.PreserveTopology = false;
         qparams.QualityQuadric = false;
         qparams.QualityWeight = false;
@@ -200,8 +201,8 @@ int main(int argc, char *argv[])
         int t2 = clock();
         printf("Initial Heap Size %i\n", int(DeciSession.h.size()));
 
-        DeciSession.SetTargetSimplices(FinalSize);
-        DeciSession.SetTimeBudget(0.005f);
+        DeciSession.SetTargetSimplices(FinalSize); // Target face number;
+        DeciSession.SetTimeBudget(0.5f); // Time budget for each cycle
         DeciSession.SetTargetOperations(100000);
         //if (TargetError< std::numeric_limits<float>::max()) DeciSession.SetTargetMetric(TargetError);
 
@@ -218,14 +219,27 @@ int main(int argc, char *argv[])
         vcg::tri::io::ExporterPLY<MyMesh>::Save(myMesh, testOutputPath);
     }
 
-    // step0. Read gltf into vcglib mesh.
- 
-    // step1. Figure out the material with different ids and have the same value.
- 
-    // step2. Simpilify meshes. ( This should be done before the mesh is merged. 
+    /****************************************  step0. Read gltf into vcglib mesh.  ******************************************************/
+
+
+    /***********************  step1. Figure out the material with different ids and have the same value. ********************************/
+
+    // TODO:
+
+    /***********************  step1. Figure out the material with different ids and have the same value. ********************************/
+
+    /***********************  step2. Simpilify meshes. ( This should be done before the mesh is merged.  ********************************/
     // Since we use quadratic error method, the gaps between maybe closed. 
+    
+    
+    
+    
+    /***********************  step2. Simpilify meshes. ( This should be done before the mesh is merged.  ********************************/
+    // TODO: 
 
-    // step3. Merge the meshes and add "batchId" in vertex attributes.
+    /**********************   step3. Merge the meshes and add "batchId" in vertex attributes.   *****************************************/
+    // TODO:
 
+    /**********************   step3. Merge the meshes and add "batchId" in vertex attributes.   *****************************************/
     return 0;
 }
