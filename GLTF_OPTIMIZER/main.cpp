@@ -3,12 +3,66 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 // #define TINYGLTF_NOEXCEPTION // optional. disable exception handling.
-#include "tiny_gltf.h"
 #include <iostream>
-
+// stuff to define the mesh
+#include "vcg/complex/complex.h"
+#include "wrap/io_trimesh/export_ply.h"
+// local optimization
+#include <vcg/complex/algorithms/local_optimization.h>
+#include <vcg/complex/algorithms/local_optimization/tri_edge_collapse_quadric.h>
+#include "tiny_gltf.h"
 using namespace tinygltf;
-//bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, argv[1]);
-//bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, argv[1]); // for binary glTF(.glb) 
+
+using namespace vcg;
+using namespace tri;
+
+// The class prototypes.
+class MyVertex;
+class MyEdge;
+class MyFace;
+
+struct MyUsedTypes : public UsedTypes<Use<MyVertex>::AsVertexType, Use<MyEdge>::AsEdgeType, Use<MyFace>::AsFaceType> {};
+
+class MyVertex : public Vertex< MyUsedTypes,
+    vertex::VFAdj,
+    vertex::Coord3f,
+    vertex::Mark,
+    vertex::Qualityf,
+    vertex::BitFlags  > {
+public:
+    vcg::math::Quadric<double> &Qd() { return q; }
+private:
+    math::Quadric<double> q;
+};
+
+class MyEdge : public Edge< MyUsedTypes> {};
+
+typedef BasicVertexPair<MyVertex> VertexPair;
+
+class MyFace : public Face< MyUsedTypes,
+    face::VFAdj,
+    face::VertexRef,
+    face::BitFlags > {};
+
+// the main mesh class
+class MyMesh : public vcg::tri::TriMesh<std::vector<MyVertex>, std::vector<MyFace> > {};
+
+
+class MyTriEdgeCollapse : public vcg::tri::TriEdgeCollapseQuadric< MyMesh, VertexPair, MyTriEdgeCollapse, QInfoStandard<MyVertex>  > {
+public:
+    typedef  vcg::tri::TriEdgeCollapseQuadric< MyMesh, VertexPair, MyTriEdgeCollapse, QInfoStandard<MyVertex>  > TECQ;
+    typedef  MyMesh::VertexType::EdgeType EdgeType;
+    inline MyTriEdgeCollapse(const VertexPair &p, int i, BaseParameterClass *pp) :TECQ(p, i, pp) {}
+};
+
+
+typedef typename MyMesh::VertexPointer VertexPointer;
+typedef typename MyMesh::ScalarType ScalarType;
+typedef typename MyMesh::VertexType VertexType;
+typedef typename MyMesh::FaceType FaceType;
+typedef typename MyMesh::VertexIterator VertexIterator;
+typedef typename MyMesh::FaceIterator FaceIterator;
+typedef typename MyMesh::EdgeIterator EdgeIterator;
 
 int main(int argc, char *argv[])
 {
@@ -38,12 +92,85 @@ int main(int argc, char *argv[])
 
     printf("intput file path: %s\n", inputPath);
     
-    Model model;
+    Model *model = new Model;
     TinyGLTF loader;
     std::string err;
     std::string warn;
-    bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, inputPath);
+    bool ret = loader.LoadASCIIFromFile(model, &err, &warn, inputPath);
     
+    MyMesh testMesh;
+    for (int i = 0; i < model->meshes.size(); ++i)
+    {
+        MyMesh myMesh;
+
+        Mesh mesh = model->meshes[i];
+        int positionAccessorIdx = mesh.primitives[0].attributes.at("POSITION");
+        int normalAccessorIdx = mesh.primitives[0].attributes.at("NORMAL");
+        int indicesAccessorIdx = mesh.primitives[0].indices;
+        Accessor positionAccessor = model->accessors[positionAccessorIdx];
+        Accessor normalAccessor = model->accessors[normalAccessorIdx];
+        Accessor indicesAccessor = model->accessors[indicesAccessorIdx];
+        BufferView positionBufferView = model->bufferViews[positionAccessor.bufferView];
+        BufferView normalBufferView = model->bufferViews[normalAccessor.bufferView];
+        BufferView indicesBufferView = model->bufferViews[indicesAccessor.bufferView];
+        std::vector<unsigned char> positionBuffer = model->buffers[positionBufferView.buffer].data;
+        std::vector<unsigned char> normalBuffer = model->buffers[normalBufferView.buffer].data;
+        std::vector<unsigned char> indicesBuffer = model->buffers[indicesBufferView.buffer].data;
+        
+        float* positions = (float *)(model->buffers[positionBufferView.buffer].data.data() +
+            positionBufferView.byteOffset +
+            positionAccessor.byteOffset);
+        float* normals = (float*)(model->buffers[normalBufferView.buffer].data.data() +
+            normalBufferView.byteOffset +
+            normalAccessor.byteOffset);
+        uint16_t* indices = (uint16_t*)(model->buffers[indicesBufferView.buffer].data.data() +
+            indicesBufferView.byteOffset +
+            indicesAccessor.byteOffset);
+
+        std::vector<VertexPointer> index;
+        VertexIterator vi = Allocator<MyMesh>::AddVertices(myMesh, positionAccessor.count);
+        for (int j = 0; j < positionAccessor.count; ++j)
+        {
+            (*vi).P()[0] = positions[j * 3 + 0];
+            (*vi).P()[1] = positions[j * 3 + 1];
+            (*vi).P()[2] = positions[j * 3 + 2];
+
+            (*vi).N()[0] = normals[j * 3 + 0];
+            (*vi).N()[1] = normals[j * 3 + 1];
+            (*vi).N()[2] = normals[j * 3 + 2];
+
+            //(*vi).T().P().X() = va.u;
+            //(*vi).T().P().Y() = va.v;
+            ++vi;
+        }
+
+        index.resize(positionAccessor.count);
+        vi = myMesh.vert.begin();
+        for (int j = 0; j < positionAccessor.count; ++j, ++vi)
+            index[j] = &*vi;
+
+        int faceNum = indicesAccessor.count / 3;
+        FaceIterator fi = Allocator<MyMesh>::AddFaces(myMesh, faceNum);
+
+        for (int j = 0; j < faceNum; ++j)
+        {
+            (*fi).V(0) = index[indices[j * 3 + 0]];
+            (*fi).V(1) = index[indices[j * 3 + 1]];
+            (*fi).V(2) = index[indices[j * 3 + 2]];
+            ++fi;
+        }
+        vcg::tri::io::ExporterPLY<MyMesh>::Save(myMesh, outputPath);
+
+    }
+
+    // step0. Read gltf into vcglib mesh.
+ 
+    // step1. Figure out the material with different ids and have the same value.
+ 
+    // step2. Simpilify meshes. ( This should be done before the mesh is merged. 
+    // Since we use quadratic error method, the gaps between maybe closed. 
+
+    // step3. Merge the meshes and add "batchId" in vertex attributes.
     printf("output file path: %s\n", outputPath);
 
     return 0;
