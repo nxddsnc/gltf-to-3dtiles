@@ -124,17 +124,17 @@ int main(int argc, char *argv[])
 
         /**********************   decimation    *******************************/
 		// decimator initialization
-		vcg::LocalOptimization<MyMesh> deciSession(*myMesh, &qparams);
-		deciSession.Init<MyTriEdgeCollapse>();
-		//deciSession.SetTargetVertices()
-		deciSession.SetTargetSimplices(faceNum * 0.5); // Target face number;
-        deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
+		//vcg::LocalOptimization<MyMesh> deciSession(*myMesh, &qparams);
+		//deciSession.Init<MyTriEdgeCollapse>();
+		////deciSession.SetTargetVertices()
+		//deciSession.SetTargetSimplices(faceNum * 0.5); // Target face number;
+  //      deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
 
         //deciSession.DoOptimization();
         //while (DeciSession.DoOptimization() && myMesh.fn>FinalSize && DeciSession.currMetric < TargetError)
         //    printf("Current Mesh size %7i heap sz %9i err %9g \n", myMesh.fn, int(DeciSession.h.size()), DeciSession.currMetric);
 
-        std::printf("mesh Error %g \n", deciSession.currMetric);
+        //std::printf("mesh Error %g \n", deciSession.currMetric);
         //printf("\nCompleted in (%5.3f+%5.3f) sec\n", float(t2 - t1) / CLOCKS_PER_SEC, float(t3 - t2) / CLOCKS_PER_SEC);
     
         //char testOutputPath[1024];
@@ -146,6 +146,7 @@ int main(int argc, char *argv[])
 
     SpatialTree spatialTree = SpatialTree(model, myMeshes);
     spatialTree.Initialize();
+    MyTreeNode* root = spatialTree.GetRoot();
     
     /***********************  step1. Figure out the material with different ids and have the same value. ********************************/
     // TODO:

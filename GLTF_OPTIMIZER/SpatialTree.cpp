@@ -8,6 +8,7 @@ SpatialTree::SpatialTree(Model* model, vector<MyMesh*> meshes)
 {
     m_pModel = model;
     m_meshes = meshes;
+    m_currentDepth = 0;
 }
 
 
@@ -64,7 +65,12 @@ void SpatialTree::Initialize()
             {
                 if (m_pModel->nodes[node->children[j]].matrix.size() > 0)
                 {
-                    Matrix44f matrix((float*)m_pModel->nodes[node->children[j]].matrix.data());
+                    float matrixValues[16];
+                    for (int k = 0; k < 16; ++k)
+                    {
+                        matrixValues[k] = (float)m_pModel->nodes[node->children[j]].matrix[k];
+                    }
+                    Matrix44f matrix(matrixValues);
                     box.Add(matrix, m_nodeBoxMap.at(node->children[j]));
                 }
                 else
@@ -88,15 +94,23 @@ void SpatialTree::Initialize()
     m_pRoot = new MyTreeNode;
     m_pRoot->nodes = m_pModel->nodes[0].children;
     m_pRoot->boundingBox = sceneBox;
+
     SplitTreeNode(m_pRoot);
 }
 
 void SpatialTree::SplitTreeNode(MyTreeNode* father)
 {
+    LodInfo lodInfo;
+    lodInfo.level = m_currentDepth;
+    lodInfo.nodes = father->nodes;
+    lodInfo.boundingBox = father->boundingBox;
+    m_levelLodInfoMap.insert(make_pair(0, lodInfo));
+
+    m_currentDepth++;
     Point3f dim = father->boundingBox->Dim();
-    if (father->nodes.size() < MIN_TREE_NODE ||
-        (dim.X() < MIN_BOX_SIZE && dim.Y() < MIN_BOX_SIZE && dim.Z() < MIN_BOX_SIZE))
+    if (father->nodes.size() < MIN_TREE_NODE || m_currentDepth > MAX_DEPTH)
     {
+        m_currentDepth--;
         return;
     }
 
@@ -104,20 +118,22 @@ void SpatialTree::SplitTreeNode(MyTreeNode* father)
     MyTreeNode* pRight = new MyTreeNode();
     pLeft->boundingBox = new Box3f(*father->boundingBox);
     pRight->boundingBox  = new Box3f(*father->boundingBox);
+    father->left = pLeft;
+    father->right = pRight;
     if (dim.X() > dim.Y() && dim.X() > dim.Z())
     {
         // Split X
-        pLeft->boundingBox->max.X() = pRight->boundingBox->min.X() = father->boundingBox->Center().X() * 0.5;
+        pLeft->boundingBox->max.X() = pRight->boundingBox->min.X() = father->boundingBox->Center().X();
     }
     else if (dim.Y() > dim.X() && dim.Y() > dim.Z())
     {
         // Split Y
-        pLeft->boundingBox->max.Y() = pRight->boundingBox->min.Y() = father->boundingBox->Center().Y() * 0.5;
+        pLeft->boundingBox->max.Y() = pRight->boundingBox->min.Y() = father->boundingBox->Center().Y();
     }
     else
     {
         // Split Z
-        pLeft->boundingBox->max.X() = pRight->boundingBox->min.X() = father->boundingBox->Center().X() * 0.5;
+        pLeft->boundingBox->max.X() = pRight->boundingBox->min.X() = father->boundingBox->Center().X();
     }
 
     for (int i = 0; i < father->nodes.size(); ++i)
@@ -136,4 +152,5 @@ void SpatialTree::SplitTreeNode(MyTreeNode* father)
 
     SplitTreeNode(pLeft);
     SplitTreeNode(pRight);
+    m_currentDepth--;
 }
