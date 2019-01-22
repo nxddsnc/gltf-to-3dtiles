@@ -73,9 +73,26 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
             }
         }
 
-        
-
+        Model model(*m_pModel);
+        for (int j = 0; j < lodInfos[i].nodes.size(); ++j)
+        {
+            int nodeIdx = lodInfos[i].nodes[j];
+            m_pModel->nodes[nodeIdx];
+        }
     }
-    /**********************   decimation    *******************************/
+}
 
+void LodExporter::addNode(Node* node)
+{
+    if (node->mesh != -1)
+    {
+        
+    }
+
+    for (int i = 0; i < node->children.size(); ++i)
+    {
+        addNode(&(m_pModel->nodes[node->children[i]]));
+    }
+
+    
 }

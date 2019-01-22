@@ -17,6 +17,8 @@ public:
 private:
     void getMeshIdxs(std::vector<int> nodeIdxs, std::vector<int>& meshIdxs);
     void traverseNode(tinygltf::Node* node, std::vector<int>& meshIdxs);
+
+    void addNode(tinygltf::Node* node);
 private:
     tinygltf::Model* m_pModel;
     std::vector<MyMesh*> m_myMeshes;
