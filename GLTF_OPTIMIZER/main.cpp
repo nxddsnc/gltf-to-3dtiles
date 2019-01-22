@@ -1,7 +1,9 @@
+#pragma once
 #include "SpatialTree.h"
 #include "MyMesh.h"
 #include <stdint.h>
 #include "tiny_gltf.h"
+#include "LodExporter.h"
 using namespace tinygltf;
 using namespace std;
 
@@ -146,8 +148,17 @@ int main(int argc, char *argv[])
 
     SpatialTree spatialTree = SpatialTree(model, myMeshes);
     spatialTree.Initialize();
-    MyTreeNode* root = spatialTree.GetRoot();
-    
+
+    LodExporter lodExporter = LodExporter(model, myMeshes);
+    std::map<int, std::vector<LodInfo>> lodInfosMap = spatialTree.GetLodInfosMap();
+    std::map<int, std::vector<LodInfo>>::reverse_iterator it = lodInfosMap.rbegin();
+    int maxLevel = it->first;
+    for (; it != lodInfosMap.rend(); ++it)
+    {
+        vector<LodInfo> lodInfos = it->second;
+        lodExporter.ExportLods(lodInfos, it->first);
+    }
+
     /***********************  step1. Figure out the material with different ids and have the same value. ********************************/
     // TODO:
 	/*for (int i = 0;i < model->meshes.size(); ++i)

@@ -58,3 +58,10 @@ typedef typename MyMesh::FaceType FaceType;
 typedef typename MyMesh::VertexIterator VertexIterator;
 typedef typename MyMesh::FaceIterator FaceIterator;
 typedef typename MyMesh::EdgeIterator EdgeIterator;
+
+struct LodInfo
+{
+    int level;
+    std::vector<int> nodes;
+    vcg::Box3f* boundingBox;
+};

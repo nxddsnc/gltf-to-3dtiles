@@ -4,6 +4,7 @@
 #include <map>
 #include "vcg/space//box3.h"
 #include "tiny_gltf.h"
+#include "MyMesh.h"
 #define MIN_TREE_NODE 8
 #define MAX_DEPTH 4
 
@@ -18,13 +19,6 @@ struct MyTreeNode
 
 class MyMesh;
 
-struct LodInfo
-{
-    int level;
-    std::vector<int> nodes;
-    vcg::Box3f* boundingBox;
-};
-
 class SpatialTree
 {
 public:
@@ -32,7 +26,7 @@ public:
     ~SpatialTree();
 
     MyTreeNode* GetRoot() { return m_pRoot; }
-    std::map<int, LodInfo> GetLodInfoMap() { return m_levelLodInfoMap; }
+    std::map<int, std::vector<LodInfo>> GetLodInfosMap() { return m_levelLodInfosMap; }
     void Initialize();
 private: 
     tinygltf::Model* m_pModel;
@@ -40,7 +34,7 @@ private:
     MyTreeNode* m_pRoot;
     std::unordered_map<int, vcg::Box3f> m_nodeBoxMap;
     int m_currentDepth;
-    std::map<int, LodInfo> m_levelLodInfoMap;
+    std::map<int, std::vector<LodInfo>> m_levelLodInfosMap;
 private:
     void SplitTreeNode(MyTreeNode* father);
 };

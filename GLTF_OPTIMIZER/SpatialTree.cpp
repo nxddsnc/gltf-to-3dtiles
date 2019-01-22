@@ -1,5 +1,4 @@
 #include "SpatialTree.h"
-#include "MyMesh.h"
 using namespace tinygltf;
 using namespace std;
 using namespace vcg;
@@ -104,7 +103,17 @@ void SpatialTree::SplitTreeNode(MyTreeNode* father)
     lodInfo.level = m_currentDepth;
     lodInfo.nodes = father->nodes;
     lodInfo.boundingBox = father->boundingBox;
-    m_levelLodInfoMap.insert(make_pair(0, lodInfo));
+
+    if (m_levelLodInfosMap.count(m_currentDepth) > 0)
+    {
+        m_levelLodInfosMap.at(m_currentDepth).push_back(lodInfo);
+    }
+    else 
+    {
+        std::vector<LodInfo> lodInfos;
+        lodInfos.push_back(lodInfo);
+        m_levelLodInfosMap.insert(make_pair(0, lodInfos));
+    }
 
     m_currentDepth++;
     Point3f dim = father->boundingBox->Dim();
