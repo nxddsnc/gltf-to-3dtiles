@@ -73,7 +73,7 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
             }
         }
 
-        Model model(*m_pModel);
+        m_pNewModel = new Model(*m_pModel);
         for (int j = 0; j < lodInfos[i].nodes.size(); ++j)
         {
             int nodeIdx = lodInfos[i].nodes[j];
@@ -82,18 +82,72 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
     }
 }
 
-void LodExporter::addNode(Node* node)
+int LodExporter::addNode(Node* node)
 {
-    if (node->mesh != -1)
-    {
-        MyMesh* myMesh = m_myMeshes[node->mesh];
-        // Add primitive
-        // Add acceccor
-        // Add material
-    }
+	Node newNode;
+	newNode.name = node->name;
+	newNode.matrix = node->matrix;
+	for (int i = 0; i < node->children.size(); ++i)
+	{
+		int idx = addNode(&(m_pModel->nodes[node->children[i]]));
+		newNode.children.push_back(idx);
+	}
 
-    for (int i = 0; i < node->children.size(); ++i)
-    {
-        addNode(&(m_pModel->nodes[node->children[i]]));
-    }
+	if (node->mesh != -1)
+	{
+		MyMesh* myMesh = m_myMeshes[node->mesh];
+		int idx = addMesh(&(m_pModel->meshes[node->mesh]), myMesh);
+		newNode.mesh = idx;
+	}
+
+	m_pNewModel->nodes.push_back(newNode);
+	return m_pNewModel->nodes.size();
 }
+
+int LodExporter::addMesh(Mesh* mesh, MyMesh* myMesh)
+{
+	Mesh newMesh;
+	newMesh.name = mesh->name;
+	Primitive newPrimitive;
+
+	addPrimitive(&newPrimitive, mesh, myMesh);
+	newMesh.primitives.push_back(newPrimitive);
+
+	m_pNewModel->meshes.push_back(newMesh);
+	return m_pNewModel->meshes.size();
+}
+
+void LodExporter::addPrimitive(Primitive* primitive, Mesh* mesh, MyMesh* myMesh)
+{
+	primitive->mode = mesh->primitives[0].mode;
+	int mtlIdx = addMaterial(mesh->primitives[0].material);
+	primitive->material = mtlIdx;
+	std::map<std::string, int>::iterator it;
+	for (it = mesh->primitives[0].attributes.begin(); it != mesh->primitives[0].attributes.end(); ++it)
+	{
+		int idx = addAccessor();
+		primitive->attributes.insert(make_pair(it->first, idx));
+	}
+	int idx = addAccessor();
+	primitive->indices = idx;
+}
+
+int LodExporter::addMaterial(int material)
+{
+	if (m_materialCache.count(material) > 0) 
+	{
+		return m_materialCache.at(material);
+	}
+	Material newMaterial;
+	newMaterial = m_pModel->materials[material];
+	m_pNewModel->materials.push_back(newMaterial);
+	int idx = m_pNewModel->materials.size();
+	
+	m_materialCache.insert(make_pair(material, idx));
+}
+
+int LodExporter::addAccessor()
+{
+	return 0;
+}
+
