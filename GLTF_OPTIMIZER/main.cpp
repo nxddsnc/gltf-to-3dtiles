@@ -1,80 +1,22 @@
-// Define these only in *one* .cc file.
-#define TINYGLTF_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-// #define TINYGLTF_NOEXCEPTION // optional. disable exception handling.
-#include <iostream>
-#include "vcg/complex/complex.h"
-#include "wrap/io_trimesh/export_ply.h"
-#include <vcg/complex/algorithms/local_optimization.h>
-#include <vcg/complex/algorithms/local_optimization/tri_edge_collapse_quadric.h>
+#include "SpatialTree.h"
+#include "MyMesh.h"
+#include <stdint.h>
 #include "tiny_gltf.h"
-#include <unordered_map>
-
 using namespace tinygltf;
-using namespace vcg;
-using namespace tri;
 using namespace std;
-
-// The class prototypes.
-class MyVertex;
-class MyEdge;
-class MyFace;
-
-struct MyUsedTypes : public UsedTypes<Use<MyVertex>::AsVertexType, Use<MyEdge>::AsEdgeType, Use<MyFace>::AsFaceType> {};
-
-class MyVertex : public Vertex< MyUsedTypes,
-    vertex::VFAdj,
-    vertex::Coord3f,
-    vertex::Normal3f,
-    vertex::Mark,
-    vertex::Qualityf,
-    vertex::BitFlags  > {
-public:
-    vcg::math::Quadric<double> &Qd() { return q; }
-private:
-    math::Quadric<double> q;
-};
-
-class MyEdge : public Edge< MyUsedTypes> {};
-
-typedef BasicVertexPair<MyVertex> VertexPair;
-
-class MyFace : public Face< MyUsedTypes,
-    face::VFAdj,
-    face::VertexRef,
-    face::BitFlags > {};
-
-// the main mesh class
-class MyMesh : public vcg::tri::TriMesh<std::vector<MyVertex>, std::vector<MyFace> > {};
-
-
-class MyTriEdgeCollapse : public vcg::tri::TriEdgeCollapseQuadric< MyMesh, VertexPair, MyTriEdgeCollapse, QInfoStandard<MyVertex>  > {
-public:
-    typedef  vcg::tri::TriEdgeCollapseQuadric< MyMesh, VertexPair, MyTriEdgeCollapse, QInfoStandard<MyVertex>  > TECQ;
-    typedef  MyMesh::VertexType::EdgeType EdgeType;
-    inline MyTriEdgeCollapse(const VertexPair &p, int i, BaseParameterClass *pp) :TECQ(p, i, pp) {}
-};
-
-typedef typename MyMesh::VertexPointer VertexPointer;
-typedef typename MyMesh::ScalarType ScalarType;
-typedef typename MyMesh::VertexType VertexType;
-typedef typename MyMesh::FaceType FaceType;
-typedef typename MyMesh::VertexIterator VertexIterator;
-typedef typename MyMesh::FaceIterator FaceIterator;
-typedef typename MyMesh::EdgeIterator EdgeIterator;
 
 int main(int argc, char *argv[])
 {
     char* inputPath = NULL;
     char* outputPath = NULL;
+    uint32_t idBegin = -1;
     for (int i = 1; i < argc; ++i)
     {
         if (std::strcmp(argv[i], "-i") == 0)
         {
             if (i + 1 >= argc)
             {
-                printf("Input error\n");
+                std::printf("Input error\n");
                 return -1;
             }
             inputPath = argv[i + 1];
@@ -83,17 +25,28 @@ int main(int argc, char *argv[])
         {
             if (i + 1 >= argc)
             {
-                printf("Input error\n");
+                std::printf("Input error\n");
                 return -1;
             }
             outputPath = argv[i + 1];
         }
+        else if (std::strcmp(argv[i], "-idBegin") == 0)
+        {
+
+            if (i + 1 >= argc)
+            {
+                std::printf("Input error\n");
+                return -1;
+            }
+            idBegin = atoi(argv[i + 1]);
+        }
     }
 
-    printf("intput file path: %s\n", inputPath);
+    std::printf("intput file path: %s\n", inputPath);
     
     /****************************************  step0. Read gltf into vcglib mesh.  ******************************************************/
     Model *model = new Model;
+    vector<MyMesh*> myMeshes;
     TinyGLTF loader;
     std::string err;
     std::string warn;
@@ -107,7 +60,8 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < model->meshes.size(); ++i)
     {
-        MyMesh myMesh;
+        MyMesh* myMesh = new MyMesh();
+        myMeshes.push_back(myMesh);
 
         Mesh mesh = model->meshes[i];
         int positionAccessorIdx = mesh.primitives[0].attributes.at("POSITION");
@@ -134,7 +88,7 @@ int main(int argc, char *argv[])
             indicesAccessor.byteOffset);
 
         std::vector<VertexPointer> index;
-        VertexIterator vi = Allocator<MyMesh>::AddVertices(myMesh, positionAccessor.count);
+        VertexIterator vi = Allocator<MyMesh>::AddVertices(*myMesh, positionAccessor.count);
         
         for (int j = 0; j < positionAccessor.count; ++j)
         {
@@ -152,12 +106,12 @@ int main(int argc, char *argv[])
         }
 
         index.resize(positionAccessor.count);
-        vi = myMesh.vert.begin();
+        vi = myMesh->vert.begin();
         for (int j = 0; j < positionAccessor.count; ++j, ++vi)
             index[j] = &*vi;
 
         int faceNum = indicesAccessor.count / 3;
-        FaceIterator fi = Allocator<MyMesh>::AddFaces(myMesh, faceNum);
+        FaceIterator fi = Allocator<MyMesh>::AddFaces(*myMesh, faceNum);
 
         for (int j = 0; j < faceNum; ++j)
         {
@@ -170,27 +124,29 @@ int main(int argc, char *argv[])
 
         /**********************   decimation    *******************************/
 		// decimator initialization
-		vcg::LocalOptimization<MyMesh> deciSession(myMesh, &qparams);
+		vcg::LocalOptimization<MyMesh> deciSession(*myMesh, &qparams);
 		deciSession.Init<MyTriEdgeCollapse>();
 		//deciSession.SetTargetVertices()
 		deciSession.SetTargetSimplices(faceNum * 0.5); // Target face number;
         deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
 
-        deciSession.DoOptimization();
+        //deciSession.DoOptimization();
         //while (DeciSession.DoOptimization() && myMesh.fn>FinalSize && DeciSession.currMetric < TargetError)
         //    printf("Current Mesh size %7i heap sz %9i err %9g \n", myMesh.fn, int(DeciSession.h.size()), DeciSession.currMetric);
 
-        printf("mesh  %d %d Error %g \n", myMesh.vn, myMesh.fn, deciSession.currMetric);
+        std::printf("mesh Error %g \n", deciSession.currMetric);
         //printf("\nCompleted in (%5.3f+%5.3f) sec\n", float(t2 - t1) / CLOCKS_PER_SEC, float(t3 - t2) / CLOCKS_PER_SEC);
     
-        char testOutputPath[1024];
-        sprintf(testOutputPath, "../data/after-%d.ply", i);
-        vcg::tri::io::ExporterPLY<MyMesh>::Save(myMesh, testOutputPath);
+        //char testOutputPath[1024];
+        //sprintf(testOutputPath, "../data/after-%d.ply", i);
+        //vcg::tri::io::ExporterPLY<MyMesh>::Save(myMesh, testOutputPath);
     }
 
     /****************************************  step0. Read gltf into vcglib mesh.  ******************************************************/
 
-
+    SpatialTree spatialTree = SpatialTree(model, myMeshes);
+    spatialTree.Initialize();
+    
     /***********************  step1. Figure out the material with different ids and have the same value. ********************************/
     // TODO:
 	/*for (int i = 0;i < model->meshes.size(); ++i)

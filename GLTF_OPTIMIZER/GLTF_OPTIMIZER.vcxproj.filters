@@ -24,6 +24,9 @@
     <ClCompile Include="..\..\vcglib\wrap\ply\plylib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SpatialTree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tinyGltf\json.hpp">
@@ -37,6 +40,12 @@
     </ClInclude>
     <ClInclude Include="tinyGltf\tiny_gltf.h">
       <Filter>Header Files\TinyGltf</Filter>
+    </ClInclude>
+    <ClInclude Include="SpatialTree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MyMesh.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -22,7 +22,6 @@
     <ProjectGuid>{BE92CA2C-27B9-4A21-8815-ADB5A2E6C9D0}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>GLTF_OPTIMIZER</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.10240.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -155,8 +154,11 @@
   <ItemGroup>
     <ClCompile Include="..\..\vcglib\wrap\ply\plylib.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="SpatialTree.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MyMesh.h" />
+    <ClInclude Include="SpatialTree.h" />
     <ClInclude Include="tinyGltf\json.hpp" />
     <ClInclude Include="tinyGltf\stb_image.h" />
     <ClInclude Include="tinyGltf\stb_image_write.h" />
