@@ -86,13 +86,14 @@ void LodExporter::addNode(Node* node)
 {
     if (node->mesh != -1)
     {
-        
+        MyMesh* myMesh = m_myMeshes[node->mesh];
+        // Add primitive
+        // Add acceccor
+        // Add material
     }
 
     for (int i = 0; i < node->children.size(); ++i)
     {
         addNode(&(m_pModel->nodes[node->children[i]]));
     }
-
-    
 }
