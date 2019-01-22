@@ -35,6 +35,7 @@
 //  - base64: base64 decode/encode library.
 //  - stb_image: Image loading library.
 //
+#pragma once
 #ifndef TINY_GLTF_H_
 #define TINY_GLTF_H_
 

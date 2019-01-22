@@ -49,16 +49,10 @@ int main(int argc, char *argv[])
     /****************************************  step0. Read gltf into vcglib mesh.  ******************************************************/
     Model *model = new Model;
     vector<MyMesh*> myMeshes;
-    TinyGLTF loader;
+    TinyGLTF* tinyGltf = new TinyGLTF;
     std::string err;
     std::string warn;
-    bool ret = loader.LoadASCIIFromFile(model, &err, &warn, inputPath);
-    
-
-	TriEdgeCollapseQuadricParameter qparams;
-	qparams.QualityThr = .3;
-	qparams.PreserveBoundary = true; // Perserve mesh boundary
-	qparams.PreserveTopology = false;
+    bool ret = tinyGltf->LoadASCIIFromFile(model, &err, &warn, inputPath);
 
     for (int i = 0; i < model->meshes.size(); ++i)
     {
@@ -123,22 +117,6 @@ int main(int argc, char *argv[])
             ++fi;
         }
 
-
-        /**********************   decimation    *******************************/
-		// decimator initialization
-		//vcg::LocalOptimization<MyMesh> deciSession(*myMesh, &qparams);
-		//deciSession.Init<MyTriEdgeCollapse>();
-		////deciSession.SetTargetVertices()
-		//deciSession.SetTargetSimplices(faceNum * 0.5); // Target face number;
-  //      deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
-
-        //deciSession.DoOptimization();
-        //while (DeciSession.DoOptimization() && myMesh.fn>FinalSize && DeciSession.currMetric < TargetError)
-        //    printf("Current Mesh size %7i heap sz %9i err %9g \n", myMesh.fn, int(DeciSession.h.size()), DeciSession.currMetric);
-
-        //std::printf("mesh Error %g \n", deciSession.currMetric);
-        //printf("\nCompleted in (%5.3f+%5.3f) sec\n", float(t2 - t1) / CLOCKS_PER_SEC, float(t3 - t2) / CLOCKS_PER_SEC);
-    
         //char testOutputPath[1024];
         //sprintf(testOutputPath, "../data/after-%d.ply", i);
         //vcg::tri::io::ExporterPLY<MyMesh>::Save(myMesh, testOutputPath);
@@ -149,7 +127,7 @@ int main(int argc, char *argv[])
     SpatialTree spatialTree = SpatialTree(model, myMeshes);
     spatialTree.Initialize();
 
-    LodExporter lodExporter = LodExporter(model, myMeshes);
+    LodExporter lodExporter = LodExporter(model, myMeshes, tinyGltf);
     std::map<int, std::vector<LodInfo>> lodInfosMap = spatialTree.GetLodInfosMap();
     std::map<int, std::vector<LodInfo>>::reverse_iterator it = lodInfosMap.rbegin();
     int maxLevel = it->first;
