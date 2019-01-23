@@ -126,7 +126,7 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
         m_pNewModel->buffers.push_back(buffer);
         // output
         char outputDir[1024];
-        sprintf(outputDir, "%s/%d", m_outputDir, level);
+        sprintf(outputDir, "%s/%d", m_outputDir.c_str(), level);
 
         wchar_t wOutputDir[1024];
         mbstowcs(wOutputDir, outputDir, strlen(outputDir) + 1);//Plus null
