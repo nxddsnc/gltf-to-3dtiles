@@ -27,6 +27,7 @@ public:
     LodExporter(tinygltf::Model* model, std::vector<MyMesh*> myMeshes, tinygltf::TinyGLTF* tinyGLTF);
     ~LodExporter();
     void ExportLods(std::vector<LodInfo> lodInfos, int level);
+    void SetOutputDir(std::string dir) { m_outputDir = dir; }
 private:
     void getMeshIdxs(std::vector<int> nodeIdxs, std::vector<int>& meshIdxs);
     void traverseNode(tinygltf::Node* node, std::vector<int>& meshIdxs);
@@ -46,10 +47,9 @@ private:
     TriEdgeCollapseQuadricParameter* m_pParams;
     tinygltf::TinyGLTF* m_pTinyGTLF;
     MyMesh* m_pCurrentMesh;
-    std::string m_currentDir;
+    std::string m_outputDir;
     std::vector<unsigned char> m_currentAttributeBuffer;
     std::vector<unsigned char> m_currentIndexBuffer;
-    std::map<int, tinygltf::BufferView*> m_targetBufferViewMap;
 
     std::unordered_map<MyVertex*, uint32_t> m_vertexUintMap;
     std::unordered_map<MyVertex*, uint16_t> m_vertexUshortMap;

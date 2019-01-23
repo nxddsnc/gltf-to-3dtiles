@@ -24,8 +24,6 @@ LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinyg
     //m_pParams->QualityWeight = false;
 
     m_pTinyGTLF = tinyGLTF;
-
-    m_currentDir = "D:/GLTF/";
 }
 
 LodExporter::~LodExporter()
@@ -127,20 +125,25 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
         memcpy(buffer.data.data() + m_currentAttributeBuffer.size(), m_currentIndexBuffer.data(), m_currentIndexBuffer.size());
         m_pNewModel->buffers.push_back(buffer);
         // output
-        char outputFilePath[1024];
-        sprintf(outputFilePath, "D:/GLTF/test.gltf");
-        bool bSuccess = m_pTinyGTLF->WriteGltfSceneToFile(m_pNewModel, outputFilePath);
-        if (!bSuccess)
+        char outputDir[1024];
+        sprintf(outputDir, "%s/%d", m_outputDir, level);
+
+        wchar_t wOutputDir[1024];
+        mbstowcs(wOutputDir, outputDir, strlen(outputDir) + 1);//Plus null
+        LPWSTR pWOutputDir = wOutputDir;
+
+        if (CreateDirectory(pWOutputDir, NULL) ||
+            ERROR_ALREADY_EXISTS == GetLastError())
         {
-            printf("Error");
+            char outputFilePath[1024];
+            sprintf(outputFilePath, "%s/%d/test-%d.gltf", m_outputDir, level);
+            bool bSuccess = m_pTinyGTLF->WriteGltfSceneToFile(m_pNewModel, outputFilePath);
+            if (!bSuccess)
+            {
+                printf("Error");
+            }
         }
-        // release temp invirables
-        std::map<int, tinygltf::BufferView*>::iterator it; 
-        for (it = m_targetBufferViewMap.begin(); it != m_targetBufferViewMap.end(); ++it)
-        {
-            BufferView* pBufferView = it->second;
-            delete pBufferView;
-        }
+
     }
 }
 

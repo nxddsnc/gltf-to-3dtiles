@@ -128,6 +128,7 @@ int main(int argc, char *argv[])
     spatialTree.Initialize();
 
     LodExporter lodExporter = LodExporter(model, myMeshes, tinyGltf);
+    lodExporter.SetOutputDir(outputPath);
     std::map<int, std::vector<LodInfo>> lodInfosMap = spatialTree.GetLodInfosMap();
     std::map<int, std::vector<LodInfo>>::reverse_iterator it = lodInfosMap.rbegin();
     int maxLevel = it->first;
