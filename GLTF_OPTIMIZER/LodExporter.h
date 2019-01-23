@@ -53,5 +53,8 @@ private:
 
     std::unordered_map<MyVertex*, uint32_t> m_vertexUintMap;
     std::unordered_map<MyVertex*, uint16_t> m_vertexUshortMap;
+
+    float m_positionMax[3];
+    float m_positionMin[3];
 };
 

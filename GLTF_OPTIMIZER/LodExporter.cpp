@@ -87,6 +87,7 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
                     deciSession.DoOptimization();
                     currentTry++;
                 } while (myMesh->fn > finalSize && currentTry < maxTry);
+                //vcg::tri::UpdateBounding<MyMesh>::Box(*myMesh);
                 geometryError += deciSession.currMetric;
             }
         }
@@ -100,6 +101,7 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
             arraybufferView.byteLength = 0;
             arraybufferView.buffer = 0;
             arraybufferView.byteStride = 12;
+            arraybufferView.byteOffset = 0;
 
             BufferView elementArraybufferView;
             elementArraybufferView.target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
@@ -111,6 +113,13 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
         }
 
         addNode(&(m_pModel->nodes[0]));
+
+        m_pNewModel->scenes[0].nodes[0] = m_pNewModel->nodes.size() - 1;
+
+        {
+            // FIXME: Support more than 2 bufferviews.
+            m_pNewModel->bufferViews[1].byteOffset = m_currentAttributeBuffer.size();
+        }
         Buffer buffer;
         buffer.uri = "test.bin";
         buffer.data.resize(m_currentAttributeBuffer.size() + m_currentIndexBuffer.size());
@@ -230,7 +239,7 @@ int LodExporter::addAccessor(AccessorType type)
         {
             newAccessor.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
         }
-        newAccessor.count = m_pCurrentMesh->fn;
+        newAccessor.count = m_pCurrentMesh->fn * 3;
         break;
     default:
         assert(-1);
@@ -238,6 +247,15 @@ int LodExporter::addAccessor(AccessorType type)
     }
     
     newAccessor.bufferView = addBufferView(type, newAccessor.byteOffset);
+    if (type == POSITION)
+    {
+        newAccessor.minValues.push_back(m_positionMin[0]);
+        newAccessor.minValues.push_back(m_positionMin[1]);
+        newAccessor.minValues.push_back(m_positionMin[2]);
+        newAccessor.maxValues.push_back(m_positionMax[0]);
+        newAccessor.maxValues.push_back(m_positionMax[1]);
+        newAccessor.maxValues.push_back(m_positionMax[2]);
+    }
     m_pNewModel->accessors.push_back(newAccessor);
     return m_pNewModel->accessors.size() - 1;
 }
@@ -249,16 +267,14 @@ int LodExporter::addBufferView(AccessorType type, size_t& byteOffset)
     int byteLength = addBuffer(type);
     if (type == INDEX) 
     {
+        byteOffset = m_pNewModel->bufferViews[1].byteLength;
         m_pNewModel->bufferViews[1].byteLength += byteLength;
-        byteOffset = m_pNewModel->bufferViews[1].byteOffset;
-        m_pNewModel->bufferViews[1].byteOffset = m_currentIndexBuffer.size();
         return 1;
     }
     else
     {
+        byteOffset = m_pNewModel->bufferViews[0].byteLength;
         m_pNewModel->bufferViews[0].byteLength += byteLength;
-        byteOffset = m_pNewModel->bufferViews[0].byteOffset;
-        m_pNewModel->bufferViews[0].byteOffset = m_currentAttributeBuffer.size();
         return 0;
     }
 }
@@ -271,10 +287,21 @@ int LodExporter::addBuffer(AccessorType type)
     switch (type)
     {
     case POSITION:
+        m_positionMin[0] = m_positionMin[1] = m_positionMin[2] = INFINITY;
+        m_positionMax[0] = m_positionMax[1] = m_positionMax[2] = -INFINITY;
         for (vector<MyVertex>::iterator it = m_pCurrentMesh->vert.begin(); it != m_pCurrentMesh->vert.end(); ++it)
         {
             for (int i = 0; i < 3; ++i)
             {
+                if (m_positionMin[i] > it->P()[i])
+                {
+                    m_positionMin[i] = it->P()[i];
+                }
+                if (m_positionMax[i] < it->P()[i])
+                {
+                    m_positionMax[i] = it->P()[i];
+                }
+
                 temp = (unsigned char*)&(it->P()[i]);
                 m_currentAttributeBuffer.push_back(temp[0]);
                 m_currentAttributeBuffer.push_back(temp[1]);
@@ -285,7 +312,7 @@ int LodExporter::addBuffer(AccessorType type)
             m_vertexUshortMap.insert(make_pair(&(*it), index));
             index++;
         }
-        byteLength = m_pCurrentMesh->vert.size() * sizeof(float);
+        byteLength = m_pCurrentMesh->vert.size() * 3 * sizeof(float);
         break;
     case NORMAL:
         for (vector<MyVertex>::iterator it = m_pCurrentMesh->vert.begin(); it != m_pCurrentMesh->vert.end(); ++it)
@@ -299,7 +326,7 @@ int LodExporter::addBuffer(AccessorType type)
                 m_currentAttributeBuffer.push_back(temp[3]);
             }
         }
-        byteLength = m_pCurrentMesh->vert.size() * sizeof(float); 
+        byteLength = m_pCurrentMesh->vert.size() * 3 * sizeof(float); 
         break;
     case UV:
         // FIXME: Implement UV
@@ -309,15 +336,13 @@ int LodExporter::addBuffer(AccessorType type)
         {
             for (int i = 0; i < 3; ++i)
             {
-                temp = (unsigned char*)&(m_vertexUshortMap.at(it->V(0)));
+                temp = (unsigned char*)&(m_vertexUshortMap.at(it->V(i)));
                 m_currentIndexBuffer.push_back(temp[0]);
                 m_currentIndexBuffer.push_back(temp[1]);
-                m_currentIndexBuffer.push_back(temp[2]);
-                m_currentIndexBuffer.push_back(temp[3]);
             }
         }
         // FIXME: Add uint32 support
-        byteLength = m_pCurrentMesh->vert.size() * sizeof(uint16_t);
+        byteLength = m_pCurrentMesh->face.size() * 3 * sizeof(uint16_t);
         break;
     default:
         break;
