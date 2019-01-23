@@ -291,6 +291,10 @@ int LodExporter::addBuffer(AccessorType type)
         m_positionMax[0] = m_positionMax[1] = m_positionMax[2] = -INFINITY;
         for (vector<MyVertex>::iterator it = m_pCurrentMesh->vert.begin(); it != m_pCurrentMesh->vert.end(); ++it)
         {
+            if (it->IsD())
+            {
+                continue;
+            }
             for (int i = 0; i < 3; ++i)
             {
                 if (m_positionMin[i] > it->P()[i])
@@ -312,11 +316,15 @@ int LodExporter::addBuffer(AccessorType type)
             m_vertexUshortMap.insert(make_pair(&(*it), index));
             index++;
         }
-        byteLength = m_pCurrentMesh->vert.size() * 3 * sizeof(float);
+        byteLength = m_pCurrentMesh->vn * 3 * sizeof(float);
         break;
     case NORMAL:
         for (vector<MyVertex>::iterator it = m_pCurrentMesh->vert.begin(); it != m_pCurrentMesh->vert.end(); ++it)
         {
+            if (it->IsD())
+            {
+                continue;
+            }
             for (int i = 0; i < 3; ++i)
             {
                 temp = (unsigned char*)&(it->N()[i]);
@@ -326,7 +334,8 @@ int LodExporter::addBuffer(AccessorType type)
                 m_currentAttributeBuffer.push_back(temp[3]);
             }
         }
-        byteLength = m_pCurrentMesh->vert.size() * 3 * sizeof(float); 
+        byteLength = m_pCurrentMesh->vn * 3 * sizeof(float); 
+        //assert(m_pCurrentMesh->vert.size() == m_pCurrentMesh->vn);
         break;
     case UV:
         // FIXME: Implement UV
@@ -334,6 +343,10 @@ int LodExporter::addBuffer(AccessorType type)
     case INDEX:
         for (vector<MyFace>::iterator it = m_pCurrentMesh->face.begin(); it != m_pCurrentMesh->face.end(); ++it)
         {
+            if (it->IsD())
+            {
+                continue;
+            }
             for (int i = 0; i < 3; ++i)
             {
                 temp = (unsigned char*)&(m_vertexUshortMap.at(it->V(i)));
@@ -342,7 +355,8 @@ int LodExporter::addBuffer(AccessorType type)
             }
         }
         // FIXME: Add uint32 support
-        byteLength = m_pCurrentMesh->face.size() * 3 * sizeof(uint16_t);
+        byteLength = m_pCurrentMesh->fn * 3 * sizeof(uint16_t);
+        //assert(m_pCurrentMesh->face.size() == m_pCurrentMesh->fn);
         break;
     default:
         break;
