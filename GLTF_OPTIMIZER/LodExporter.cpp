@@ -25,7 +25,7 @@ LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinyg
 
     m_pTinyGTLF = tinyGLTF;
 
-    m_currentDir = "../data/lod/";
+    m_currentDir = "D:/GLTF/";
 }
 
 LodExporter::~LodExporter()
@@ -93,16 +93,33 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
 
         m_pNewModel = new Model(*m_pModel);
 
+        {
+            // FIXME: Support more than 2 bufferviews.
+            BufferView arraybufferView;
+            arraybufferView.target = TINYGLTF_TARGET_ARRAY_BUFFER;
+            arraybufferView.byteLength = 0;
+            arraybufferView.buffer = 0;
+            arraybufferView.byteStride = 12;
+
+            BufferView elementArraybufferView;
+            elementArraybufferView.target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
+            elementArraybufferView.byteLength = 0;
+            elementArraybufferView.buffer = 0;
+
+            m_pNewModel->bufferViews.push_back(arraybufferView);
+            m_pNewModel->bufferViews.push_back(elementArraybufferView);
+        }
+
         addNode(&(m_pModel->nodes[0]));
         Buffer buffer;
         buffer.uri = "test.bin";
         buffer.data.resize(m_currentAttributeBuffer.size() + m_currentIndexBuffer.size());
-        memcpy(&buffer.data[0], &m_currentAttributeBuffer.data[0], m_currentAttributeBuffer.size());
-        memcpy(&buffer.data[0] + m_currentAttributeBuffer.size(), &m_currentIndexBuffer.data[0], m_currentIndexBuffer.size());
-
+        memcpy(buffer.data.data(), m_currentAttributeBuffer.data(), m_currentAttributeBuffer.size());
+        memcpy(buffer.data.data() + m_currentAttributeBuffer.size(), m_currentIndexBuffer.data(), m_currentIndexBuffer.size());
+        m_pNewModel->buffers.push_back(buffer);
         // output
         char outputFilePath[1024];
-        sprintf(outputFilePath, "%s%s", m_currentDir, "test.gltf");
+        sprintf(outputFilePath, "D:/GLTF/test.gltf");
         bool bSuccess = m_pTinyGTLF->WriteGltfSceneToFile(m_pNewModel, outputFilePath);
         if (!bSuccess)
         {
@@ -139,7 +156,7 @@ int LodExporter::addNode(Node* node)
 	}
 
 	m_pNewModel->nodes.push_back(newNode);
-	return m_pNewModel->nodes.size();
+	return m_pNewModel->nodes.size() - 1;
 }
 
 int LodExporter::addMesh(Mesh* mesh)
@@ -152,7 +169,7 @@ int LodExporter::addMesh(Mesh* mesh)
 	newMesh.primitives.push_back(newPrimitive);
 
 	m_pNewModel->meshes.push_back(newMesh);
-	return m_pNewModel->meshes.size();
+	return m_pNewModel->meshes.size() - 1;
 }
 
 void LodExporter::addPrimitive(Primitive* primitive, Mesh* mesh)
@@ -222,69 +239,48 @@ int LodExporter::addAccessor(AccessorType type)
     
     newAccessor.bufferView = addBufferView(type, newAccessor.byteOffset);
     m_pNewModel->accessors.push_back(newAccessor);
-    return m_pNewModel->accessors.size();
+    return m_pNewModel->accessors.size() - 1;
 }
 
 int LodExporter::addBufferView(AccessorType type, size_t& byteOffset)
 {
-    int index = -1;
     // FIXME: We have not consider the uv coordinates yet.
     // And we only have one .bin file currently.
-    int target = TINYGLTF_TARGET_ARRAY_BUFFER;
+    int byteLength = addBuffer(type);
     if (type == INDEX) 
     {
-        target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
-    }
-    BufferView* pBufferView;
-    
-    if (m_targetBufferViewMap.count(target) > 0)
-    {
-        pBufferView = m_targetBufferViewMap.at(target);
-        for (index = 0; index < m_pNewModel->bufferViews.size(); ++index)
-        {
-            if (&(m_pNewModel->bufferViews[index]) == pBufferView)
-            {
-                break;
-            }
-        }
+        m_pNewModel->bufferViews[1].byteLength += byteLength;
+        byteOffset = m_pNewModel->bufferViews[1].byteOffset;
+        m_pNewModel->bufferViews[1].byteOffset += m_currentIndexBuffer.size();
+        return 1;
     }
     else
     {
-        pBufferView = new BufferView;
-        pBufferView->target = target;
-        pBufferView->byteLength = 0;
-        pBufferView->buffer = 0;
-        if (type != INDEX)
-        {
-            pBufferView->byteOffset = m_currentAttributeBuffer.size();
-            pBufferView->byteStride = 12;
-        }
-        else 
-        {
-            pBufferView->byteOffset = m_currentIndexBuffer.size();
-        }
-        m_targetBufferViewMap.insert(make_pair(target, pBufferView));
-        m_pNewModel->bufferViews.push_back(*pBufferView);
-        index = m_pNewModel->bufferViews.size();
+        m_pNewModel->bufferViews[0].byteLength += byteLength;
+        byteOffset = m_pNewModel->bufferViews[0].byteOffset;
+        m_pNewModel->bufferViews[0].byteOffset += m_currentAttributeBuffer.size();
+        return 0;
     }
-    int byteLength = addBuffer(type);
-    pBufferView->byteLength += byteLength;
-    byteOffset = pBufferView->byteOffset;
-    return index;
 }
 
 int LodExporter::addBuffer(AccessorType type)
 {
     int byteLength = 0;
     int index = 0;
+    unsigned char* temp = NULL;
     switch (type)
     {
     case POSITION:
         for (vector<MyVertex>::iterator it = m_pCurrentMesh->vert.begin(); it != m_pCurrentMesh->vert.end(); ++it)
         {
-            m_currentAttributeBuffer.push_back(it->P()[0]);
-            m_currentAttributeBuffer.push_back(it->P()[1]);
-            m_currentAttributeBuffer.push_back(it->P()[2]);
+            for (int i = 0; i < 3; ++i)
+            {
+                temp = (unsigned char*)&(it->P()[i]);
+                m_currentAttributeBuffer.push_back(temp[0]);
+                m_currentAttributeBuffer.push_back(temp[1]);
+                m_currentAttributeBuffer.push_back(temp[2]);
+                m_currentAttributeBuffer.push_back(temp[3]);
+            }
 
             m_vertexUshortMap.insert(make_pair(&(*it), index));
             index++;
@@ -294,9 +290,14 @@ int LodExporter::addBuffer(AccessorType type)
     case NORMAL:
         for (vector<MyVertex>::iterator it = m_pCurrentMesh->vert.begin(); it != m_pCurrentMesh->vert.end(); ++it)
         {
-            m_currentAttributeBuffer.push_back(it->N()[0]);
-            m_currentAttributeBuffer.push_back(it->N()[1]);
-            m_currentAttributeBuffer.push_back(it->N()[2]);
+            for (int i = 0; i < 3; ++i)
+            {
+                temp = (unsigned char*)&(it->N()[i]);
+                m_currentAttributeBuffer.push_back(temp[0]);
+                m_currentAttributeBuffer.push_back(temp[1]);
+                m_currentAttributeBuffer.push_back(temp[2]);
+                m_currentAttributeBuffer.push_back(temp[3]);
+            }
         }
         byteLength = m_pCurrentMesh->vert.size() * sizeof(float); 
         break;
@@ -306,9 +307,14 @@ int LodExporter::addBuffer(AccessorType type)
     case INDEX:
         for (vector<MyFace>::iterator it = m_pCurrentMesh->face.begin(); it != m_pCurrentMesh->face.end(); ++it)
         {
-            m_currentIndexBuffer.push_back(m_vertexUshortMap.at(it->V(0)));
-            m_currentIndexBuffer.push_back(m_vertexUshortMap.at(it->V(1)));
-            m_currentIndexBuffer.push_back(m_vertexUshortMap.at(it->V(2)));
+            for (int i = 0; i < 3; ++i)
+            {
+                temp = (unsigned char*)&(m_vertexUshortMap.at(it->V(0)));
+                m_currentIndexBuffer.push_back(temp[0]);
+                m_currentIndexBuffer.push_back(temp[1]);
+                m_currentIndexBuffer.push_back(temp[2]);
+                m_currentIndexBuffer.push_back(temp[3]);
+            }
         }
         // FIXME: Add uint32 support
         byteLength = m_pCurrentMesh->vert.size() * sizeof(uint16_t);
@@ -328,7 +334,9 @@ int LodExporter::addMaterial(int material)
 	Material newMaterial;
 	newMaterial = m_pModel->materials[material];
 	m_pNewModel->materials.push_back(newMaterial);
-	int idx = m_pNewModel->materials.size();
+	int idx = m_pNewModel->materials.size() - 1;
 	
 	m_materialCache.insert(make_pair(material, idx));
+
+    return idx;
 }

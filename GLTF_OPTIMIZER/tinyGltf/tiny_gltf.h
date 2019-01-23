@@ -763,6 +763,8 @@ class Model {
   Model(const Model& m)
   {
       defaultScene = m.defaultScene;
+      scenes = m.scenes;
+      asset = m.asset;
   }
   ~Model() {}
   bool operator==(const Model &) const;
