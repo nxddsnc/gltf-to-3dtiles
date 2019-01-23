@@ -251,14 +251,14 @@ int LodExporter::addBufferView(AccessorType type, size_t& byteOffset)
     {
         m_pNewModel->bufferViews[1].byteLength += byteLength;
         byteOffset = m_pNewModel->bufferViews[1].byteOffset;
-        m_pNewModel->bufferViews[1].byteOffset += m_currentIndexBuffer.size();
+        m_pNewModel->bufferViews[1].byteOffset = m_currentIndexBuffer.size();
         return 1;
     }
     else
     {
         m_pNewModel->bufferViews[0].byteLength += byteLength;
         byteOffset = m_pNewModel->bufferViews[0].byteOffset;
-        m_pNewModel->bufferViews[0].byteOffset += m_currentAttributeBuffer.size();
+        m_pNewModel->bufferViews[0].byteOffset = m_currentAttributeBuffer.size();
         return 0;
     }
 }
