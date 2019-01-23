@@ -112,7 +112,7 @@ void SpatialTree::SplitTreeNode(MyTreeNode* father)
     {
         std::vector<LodInfo> lodInfos;
         lodInfos.push_back(lodInfo);
-        m_levelLodInfosMap.insert(make_pair(0, lodInfos));
+        m_levelLodInfosMap.insert(make_pair(m_currentDepth, lodInfos));
     }
 
     m_currentDepth++;

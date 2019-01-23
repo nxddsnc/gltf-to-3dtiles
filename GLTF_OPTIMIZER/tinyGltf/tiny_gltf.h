@@ -762,27 +762,7 @@ class Model {
   Model() {}
   Model(const Model& m)
   {
-      accessors = m.accessors;
-      animations = m.animations;
-      buffers = m.buffers;
-      bufferViews = m.bufferViews;
-      materials = m.materials;
-      meshes = m.meshes;
-      nodes = m.nodes;
-      textures = m.textures;
-      images = m.images;
-      skins = m.skins;
-      samplers = m.samplers;
-      cameras = m.cameras;
-      scenes = m.scenes;
-      lights = m.lights;
-      extensions = m.extensions;
-
       defaultScene = m.defaultScene;
-      extensionsUsed = m.extensionsUsed;
-      extensionsRequired = m.extensionsRequired;
-      asset = m.asset;
-      extras = m.extras;
   }
   ~Model() {}
   bool operator==(const Model &) const;
