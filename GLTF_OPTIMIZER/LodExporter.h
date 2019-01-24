@@ -40,6 +40,7 @@ private:
     int addBufferView(AccessorType type, size_t& byteOffset);
     int addBuffer(AccessorType type);
 	std::unordered_map<int, int> m_materialCache; // map between old material and new material;
+    std::string getOutputFilePath(int level, int index);
 private:
     tinygltf::Model* m_pModel;
 	tinygltf::Model* m_pNewModel;

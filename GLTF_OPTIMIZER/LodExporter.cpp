@@ -90,6 +90,12 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
             }
         }
 
+        m_currentAttributeBuffer.clear();
+        m_currentIndexBuffer.clear();
+        m_vertexUintMap.clear();
+        m_vertexUshortMap.clear();
+        m_materialCache.clear();
+
         m_pNewModel = new Model(*m_pModel);
 
         {
@@ -119,31 +125,54 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
             m_pNewModel->bufferViews[1].byteOffset = m_currentAttributeBuffer.size();
         }
         Buffer buffer;
-        buffer.uri = "test.bin";
+        char bufferName[1024];
+        sprintf(bufferName, "%d.bin", i);
+        buffer.uri = string(bufferName);
         buffer.data.resize(m_currentAttributeBuffer.size() + m_currentIndexBuffer.size());
         memcpy(buffer.data.data(), m_currentAttributeBuffer.data(), m_currentAttributeBuffer.size());
         memcpy(buffer.data.data() + m_currentAttributeBuffer.size(), m_currentIndexBuffer.data(), m_currentIndexBuffer.size());
         m_pNewModel->buffers.push_back(buffer);
         // output
-        char outputDir[1024];
-        sprintf(outputDir, "%s/%d", m_outputDir.c_str(), level);
 
-        wchar_t wOutputDir[1024];
-        mbstowcs(wOutputDir, outputDir, strlen(outputDir) + 1);//Plus null
-        LPWSTR pWOutputDir = wOutputDir;
-
-        if (CreateDirectory(pWOutputDir, NULL) ||
-            ERROR_ALREADY_EXISTS == GetLastError())
+        string outputFilePath = getOutputFilePath(level, i);
+        if (outputFilePath.size() > 0)
         {
-            char outputFilePath[1024];
-            sprintf(outputFilePath, "%s/%d/test-%d.gltf", m_outputDir, level);
             bool bSuccess = m_pTinyGTLF->WriteGltfSceneToFile(m_pNewModel, outputFilePath);
-            if (!bSuccess)
+            if (bSuccess)
             {
-                printf("Error");
+                printf("export gltf success: %s\n", outputFilePath.c_str());
+            }
+            else 
+            {
+                printf("gltf write error\n");
             }
         }
+        else
+        {
+            printf("cannot create output filepath\n");
+        }
+    }
+}
 
+std::string LodExporter::getOutputFilePath(int level, int index)
+{
+    char outputDir[1024];
+    sprintf(outputDir, "%s/%d", m_outputDir.c_str(), level);
+
+    wchar_t wOutputDir[1024];
+    mbstowcs(wOutputDir, outputDir, strlen(outputDir) + 1); // Plus null
+    LPWSTR pWOutputDir = wOutputDir;
+
+    if (CreateDirectory(pWOutputDir, NULL) || ERROR_ALREADY_EXISTS == GetLastError())
+    {
+        char outputFilePath[1024];
+        sprintf(outputFilePath, "%s/%d/%d.gltf", m_outputDir.c_str(), level, index);
+        return string(outputFilePath);
+    }
+    else
+    {
+        printf("cannot crate folder %s\n", outputDir);
+        return "";
     }
 }
 
