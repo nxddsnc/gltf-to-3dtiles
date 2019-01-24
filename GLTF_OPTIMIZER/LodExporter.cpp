@@ -96,6 +96,7 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
         }
 
         m_currentAttributeBuffer.clear();
+        m_currentBatchIdBuffer.clear();
         m_currentIndexBuffer.clear();
         m_vertexUintMap.clear();
         m_vertexUshortMap.clear();
@@ -104,7 +105,7 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
         m_pNewModel = new Model(*m_pModel);
 
         {
-            // FIXME: Support more than 2 bufferviews.
+            // FIXME: Support more than 3 bufferviews.
             BufferView arraybufferView;
             arraybufferView.target = TINYGLTF_TARGET_ARRAY_BUFFER;
             arraybufferView.byteLength = 0;
@@ -112,12 +113,20 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
             arraybufferView.byteStride = 12;
             arraybufferView.byteOffset = 0;
 
+            BufferView batchIdArrayBufferView;
+            batchIdArrayBufferView.target = TINYGLTF_TARGET_ARRAY_BUFFER;
+            batchIdArrayBufferView.byteLength = 0;
+            batchIdArrayBufferView.buffer = 0;
+            batchIdArrayBufferView.byteStride = 4;
+            batchIdArrayBufferView.byteOffset = 0;
+
             BufferView elementArraybufferView;
             elementArraybufferView.target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
             elementArraybufferView.byteLength = 0;
             elementArraybufferView.buffer = 0;
 
             m_pNewModel->bufferViews.push_back(arraybufferView);
+            m_pNewModel->bufferViews.push_back(batchIdArrayBufferView);
             m_pNewModel->bufferViews.push_back(elementArraybufferView);
         }
 
@@ -130,16 +139,19 @@ void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
         m_pNewModel->scenes[0].nodes[0] = m_pNewModel->nodes.size() - 1;
 
         {
-            // FIXME: Support more than 2 bufferviews.
+            // FIXME: Support more than 3 bufferviews.
             m_pNewModel->bufferViews[1].byteOffset = m_currentAttributeBuffer.size();
+            m_pNewModel->bufferViews[2].byteOffset = m_currentAttributeBuffer.size() + m_currentBatchIdBuffer.size();
         }
         Buffer buffer;
         char bufferName[1024];
         sprintf(bufferName, "%d.bin", i);
         buffer.uri = string(bufferName);
-        buffer.data.resize(m_currentAttributeBuffer.size() + m_currentIndexBuffer.size());
+        buffer.data.resize(m_currentAttributeBuffer.size() + m_currentIndexBuffer.size() + m_currentBatchIdBuffer.size());
         memcpy(buffer.data.data(), m_currentAttributeBuffer.data(), m_currentAttributeBuffer.size());
-        memcpy(buffer.data.data() + m_currentAttributeBuffer.size(), m_currentIndexBuffer.data(), m_currentIndexBuffer.size());
+        memcpy(buffer.data.data() + m_currentAttributeBuffer.size(), m_currentBatchIdBuffer.data(), m_currentBatchIdBuffer.size());
+        memcpy(buffer.data.data() + m_currentAttributeBuffer.size() + m_currentBatchIdBuffer.size(),
+            m_currentIndexBuffer.data(), m_currentIndexBuffer.size());
         m_pNewModel->buffers.push_back(buffer);
         // output
 
@@ -200,6 +212,7 @@ int LodExporter::addNode(Node* node)
 	{
 		MyMesh* myMesh = m_myMeshes[node->mesh];
         m_pCurrentMesh = myMesh;
+        m_currentBatchId = node->mesh;
         m_vertexUshortMap.clear();
 		int idx = addMesh(&(m_pModel->meshes[node->mesh]));
 		newNode.mesh = idx;
@@ -246,6 +259,8 @@ void LodExporter::addPrimitive(Primitive* primitive, Mesh* mesh)
         assert(idx != -1);
 		primitive->attributes.insert(make_pair(it->first, idx));
 	}
+    int batchIdAccessorIdx = addAccessor(BATCH_ID);
+    primitive->attributes.insert(make_pair("_BATCHID", batchIdAccessorIdx));
 	int idx = addAccessor(INDEX);
 	primitive->indices = idx;
 }
@@ -255,6 +270,11 @@ int LodExporter::addAccessor(AccessorType type)
     Accessor newAccessor;
     switch (type)
     {
+    case BATCH_ID:
+        newAccessor.type = TINYGLTF_TYPE_SCALAR;
+        newAccessor.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
+        newAccessor.count = m_pCurrentMesh->vn;
+        break;
     case POSITION:
         newAccessor.type = TINYGLTF_TYPE_VEC3;
         newAccessor.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
@@ -306,17 +326,28 @@ int LodExporter::addBufferView(AccessorType type, size_t& byteOffset)
     // FIXME: We have not consider the uv coordinates yet.
     // And we only have one .bin file currently.
     int byteLength = addBuffer(type);
-    if (type == INDEX) 
+    switch (type)
     {
-        byteOffset = m_pNewModel->bufferViews[1].byteLength;
-        m_pNewModel->bufferViews[1].byteLength += byteLength;
-        return 1;
-    }
-    else
-    {
+    case POSITION:
+    case NORMAL:
         byteOffset = m_pNewModel->bufferViews[0].byteLength;
         m_pNewModel->bufferViews[0].byteLength += byteLength;
         return 0;
+    case UV:
+        // TODO: implement UV
+        break;
+    case INDEX:
+        byteOffset = m_pNewModel->bufferViews[2].byteLength;
+        m_pNewModel->bufferViews[2].byteLength += byteLength;
+        return 2;
+        break;
+    case BATCH_ID:
+        byteOffset = m_pNewModel->bufferViews[1].byteLength;
+        m_pNewModel->bufferViews[1].byteLength += byteLength;
+        return 1;
+        break;
+    default:
+        break;
     }
 }
 
@@ -327,6 +358,21 @@ int LodExporter::addBuffer(AccessorType type)
     unsigned char* temp = NULL;
     switch (type)
     {
+    case BATCH_ID:
+        for (vector<MyVertex>::iterator it = m_pCurrentMesh->vert.begin(); it != m_pCurrentMesh->vert.end(); ++it)
+        {
+            if (it->IsD())
+            {
+                continue;
+            }
+            temp = (unsigned char*)&(m_currentBatchId);
+            m_currentBatchIdBuffer.push_back(temp[0]);
+            m_currentBatchIdBuffer.push_back(temp[1]);
+            m_currentBatchIdBuffer.push_back(temp[2]);
+            m_currentBatchIdBuffer.push_back(temp[3]);
+        }
+        byteLength = m_pCurrentMesh->vn * sizeof(unsigned int);
+        break;
     case POSITION:
         m_positionMin[0] = m_positionMin[1] = m_positionMin[2] = INFINITY;
         m_positionMax[0] = m_positionMax[1] = m_positionMax[2] = -INFINITY;

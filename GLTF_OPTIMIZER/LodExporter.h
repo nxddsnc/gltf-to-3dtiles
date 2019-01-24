@@ -11,7 +11,8 @@ enum AccessorType
     POSITION,
     NORMAL,
     UV,
-    INDEX
+    INDEX,
+    BATCH_ID
 };
 namespace tinygltf
 {
@@ -50,8 +51,10 @@ private:
     TriEdgeCollapseQuadricParameter* m_pParams;
     tinygltf::TinyGLTF* m_pTinyGTLF;
     MyMesh* m_pCurrentMesh;
+    unsigned int m_currentBatchId;
     std::string m_outputDir;
     std::vector<unsigned char> m_currentAttributeBuffer;
+    std::vector<unsigned char> m_currentBatchIdBuffer;
     std::vector<unsigned char> m_currentIndexBuffer;
 
     std::unordered_map<MyVertex*, uint32_t> m_vertexUintMap;
