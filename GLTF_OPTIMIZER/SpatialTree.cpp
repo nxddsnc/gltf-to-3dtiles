@@ -15,6 +15,53 @@ SpatialTree::~SpatialTree()
 {
 }
 
+Box3f SpatialTree::getNodeBBox(Node* node)
+{
+    Box3f result;
+    result.min.X() = result.min.Y() = result.min.Z() = INFINITY;
+    result.max.X() = result.max.Y() = result.max.Z() = -INFINITY;
+
+    if (node->mesh != -1)
+    {
+        MyMesh* mesh = m_meshes[node->mesh];
+        vcg::tri::UpdateBounding<MyMesh>::Box(*mesh);
+        Box3f box = mesh->bbox;
+        if (node->matrix.size() > 0)
+        {
+            float matrixValues[16];
+            for (int k = 0; k < 16; ++k)
+            {
+                matrixValues[k] = (float)node->matrix[k];
+            }
+            result.Add(matrixValues, box);
+        }
+        else
+        {
+            result.Add(box);
+        }
+    }
+    for (int i = 0; i < node->children.size(); ++i)
+    {
+        Box3f box = getNodeBBox(&(m_pModel->nodes[node->children[i]]));
+        if (m_pModel->nodes[node->children[i]].matrix.size() > 0)
+        {
+            float matrixValues[16];
+            for (int k = 0; k < 16; ++k)
+            {
+                int row = k / 4;
+                int col = k % 4;
+                matrixValues[k] = (float)m_pModel->nodes[node->children[i]].matrix[col * 4 + row];
+            }
+            result.Add(matrixValues, box);
+        }
+        else
+        {
+            result.Add(box);
+        }
+    }
+    return result;
+}
+
 void SpatialTree::Initialize()
 {
     // Travese nodes and calculate bounding box for each element;
@@ -25,70 +72,20 @@ void SpatialTree::Initialize()
     //      -childElement
     //          -childInstance
     //              -childMesh
+    Node root = m_pModel->nodes[0];
+    for (int i = 0; i < root.children.size(); i++)
+    {
+        Box3f box = getNodeBBox(&(m_pModel->nodes[root.children[i]]));
+        m_nodeBoxMap.insert(make_pair(root.children[i], box));
+    }
     
-    for (int i = 1; i < m_pModel->nodes.size(); ++i)
-    {
-        Node* node = &(m_pModel->nodes[i]);
-        if (node->mesh != -1)
-        {
-            MyMesh* mesh = m_meshes[node->mesh];
-            vcg::tri::UpdateBounding<MyMesh>::Box(*mesh);
-            m_nodeBoxMap.insert(make_pair(i, mesh->bbox));
-        }
-    }
-    for (int i = 1; i < m_pModel->nodes.size(); ++i)
-    {
-        Node* node = &(m_pModel->nodes[i]);
-        // instance node or element node
-        if (node->children.size() > 0 && m_pModel->nodes[node->children[0]].mesh != -1)
-        {
-            Box3f box;
-            box.min.X() = box.min.Y() = box.min.Z() = INFINITY;
-            box.max.X() = box.max.Y() = box.max.Z() = -INFINITY;
-            for (int j = 0; j < node->children.size(); ++j)
-            {
-                box.Add(m_nodeBoxMap.at(node->children[j]));
-            }
-            m_nodeBoxMap.insert(make_pair(i, box));
-        }
-    }
-    for (int i = 1; i < m_pModel->nodes.size(); ++i)
-    {
-        Node* node = &(m_pModel->nodes[i]);
-        if (node->children.size() > 0 && m_pModel->nodes[node->children[0]].mesh == -1)
-        {
-            Box3f box;
-            box.min.X() = box.min.Y() = box.min.Z() = INFINITY;
-            box.max.X() = box.max.Y() = box.max.Z() = -INFINITY;
-            for (int j = 0; j < node->children.size(); ++j)
-            {
-                if (m_pModel->nodes[node->children[j]].matrix.size() > 0)
-                {
-                    float matrixValues[16];
-                    for (int k = 0; k < 16; ++k)
-                    {
-                        matrixValues[k] = (float)m_pModel->nodes[node->children[j]].matrix[k];
-                    }
-                    Matrix44f matrix(matrixValues);
-                    box.Add(matrix, m_nodeBoxMap.at(node->children[j]));
-                }
-                else
-                {
-                    box.Add(m_nodeBoxMap.at(node->children[j]));
-                }
-            }
-            m_nodeBoxMap.insert(make_pair(i, box));
-        }
-    }
-
     int totalNodeSize = m_pModel->nodes[0].children.size();
     Box3f* sceneBox = new Box3f();
     sceneBox->min.X() = sceneBox->min.Y() = sceneBox->min.Z() = INFINITY;
     sceneBox->max.X() = sceneBox->max.Y() = sceneBox->max.Z() = -INFINITY;
     for (int i = 0; i < totalNodeSize; ++i)
     {
-        int nodeIdx = m_pModel->nodes[0].children[i];
-        sceneBox->Add(m_nodeBoxMap.at(nodeIdx));
+        sceneBox->Add(m_nodeBoxMap[i]);
     }
     m_pRoot = new MyTreeNode;
     m_pRoot->nodes = m_pModel->nodes[0].children;
@@ -104,15 +101,15 @@ void SpatialTree::SplitTreeNode(MyTreeNode* father)
     lodInfo.nodes = father->nodes;
     lodInfo.boundingBox = father->boundingBox;
 
-    if (m_levelLodInfosMap.count(m_currentDepth) > 0)
+    if (m_levelLodInfosMap.count(MAX_DEPTH - m_currentDepth) > 0)
     {
-        m_levelLodInfosMap.at(m_currentDepth).push_back(lodInfo);
+        m_levelLodInfosMap.at(MAX_DEPTH - m_currentDepth).push_back(lodInfo);
     }
     else 
     {
         std::vector<LodInfo> lodInfos;
         lodInfos.push_back(lodInfo);
-        m_levelLodInfosMap.insert(make_pair(m_currentDepth, lodInfos));
+        m_levelLodInfosMap.insert(make_pair(MAX_DEPTH - m_currentDepth, lodInfos));
     }
 
     m_currentDepth++;
@@ -142,7 +139,7 @@ void SpatialTree::SplitTreeNode(MyTreeNode* father)
     else
     {
         // Split Z
-        pLeft->boundingBox->max.X() = pRight->boundingBox->min.X() = father->boundingBox->Center().X();
+        pLeft->boundingBox->max.Z() = pRight->boundingBox->min.Z() = father->boundingBox->Center().Z();
     }
 
     for (int i = 0; i < father->nodes.size(); ++i)

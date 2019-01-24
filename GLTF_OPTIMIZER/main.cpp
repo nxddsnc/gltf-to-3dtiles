@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "tiny_gltf.h"
 #include "LodExporter.h"
+
 using namespace tinygltf;
 using namespace std;
 
@@ -130,9 +131,9 @@ int main(int argc, char *argv[])
     LodExporter lodExporter = LodExporter(model, myMeshes, tinyGltf);
     lodExporter.SetOutputDir(outputPath);
     std::map<int, std::vector<LodInfo>> lodInfosMap = spatialTree.GetLodInfosMap();
-    std::map<int, std::vector<LodInfo>>::reverse_iterator it = lodInfosMap.rbegin();
+    std::map<int, std::vector<LodInfo>>::iterator it = lodInfosMap.begin();
     int maxLevel = it->first;
-    for (; it != lodInfosMap.rend(); ++it)
+    for (; it != lodInfosMap.end(); ++it)
     {
         vector<LodInfo> lodInfos = it->second;
         lodExporter.ExportLods(lodInfos, it->first);

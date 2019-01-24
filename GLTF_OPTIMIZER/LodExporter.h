@@ -3,6 +3,8 @@
 #include "MyMesh.h"
 #include <unordered_map>
 #include <stdio.h>
+#define MIN_FACE_NUM 10 // If face number is less then this, don't decimate then. 
+
 
 enum AccessorType
 {

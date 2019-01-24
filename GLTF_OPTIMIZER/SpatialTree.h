@@ -17,6 +17,11 @@ struct MyTreeNode
     MyTreeNode* right = NULL;
 };
 
+namespace tinygltf
+{
+    class Node;
+}
+
 class MyMesh;
 
 class SpatialTree
@@ -32,9 +37,10 @@ private:
     tinygltf::Model* m_pModel;
     std::vector<MyMesh*> m_meshes;
     MyTreeNode* m_pRoot;
-    std::unordered_map<int, vcg::Box3f> m_nodeBoxMap;
+    std::unordered_map<int, vcg::Box3f> m_nodeBoxMap; // Start from the sceond node of the scene.
     int m_currentDepth;
     std::map<int, std::vector<LodInfo>> m_levelLodInfosMap;
+    Box3f getNodeBBox(tinygltf::Node* node);
 private:
     void SplitTreeNode(MyTreeNode* father);
 };
