@@ -8,12 +8,27 @@ SpatialTree::SpatialTree(Model* model, vector<MyMesh*> meshes)
     m_pModel = model;
     m_meshes = meshes;
     m_currentDepth = 0;
+    m_pTileRoot = new TileInfo;
 }
 
 
 SpatialTree::~SpatialTree()
 {
     deleteMyTreeNode(m_pRoot);
+    deleteTileInfo(m_pTileRoot);
+}
+
+void SpatialTree::deleteTileInfo(TileInfo* tileInfo)
+{
+    if (tileInfo != NULL)
+    {
+        for (int i = 0; i < tileInfo->children.size(); ++i)
+        {
+            deleteTileInfo(tileInfo->children[i]);
+        }
+        delete tileInfo;
+        tileInfo = NULL;
+    }
 }
 
 void SpatialTree::deleteMyTreeNode(MyTreeNode* node)
@@ -109,26 +124,13 @@ void SpatialTree::Initialize()
     m_pRoot->nodes = m_pModel->nodes[0].children;
     m_pRoot->boundingBox = sceneBox;
 
-    SplitTreeNode(m_pRoot);
+    splitTreeNode(m_pRoot, m_pTileRoot);
 }
 
-void SpatialTree::SplitTreeNode(MyTreeNode* father)
+void SpatialTree::splitTreeNode(MyTreeNode* father, TileInfo* parentTile)
 {
-    TileInfo lodInfo;
-    lodInfo.level = m_currentDepth;
-    lodInfo.nodes = father->nodes;
-    lodInfo.boundingBox = father->boundingBox;
-
-    if (m_levelLodInfosMap.count(m_maxTreeDepth - m_currentDepth) > 0)
-    {
-        m_levelLodInfosMap.at(m_maxTreeDepth - m_currentDepth).push_back(lodInfo);
-    }
-    else 
-    {
-        std::vector<TileInfo> lodInfos;
-        lodInfos.push_back(lodInfo);
-        m_levelLodInfosMap.insert(make_pair(m_maxTreeDepth - m_currentDepth, lodInfos));
-    }
+    parentTile->boundingBox = father->boundingBox;
+    parentTile->nodes = father->nodes;
 
     m_currentDepth++;
     Point3f dim = father->boundingBox->Dim();
@@ -144,6 +146,12 @@ void SpatialTree::SplitTreeNode(MyTreeNode* father)
     pRight->boundingBox  = new Box3f(*father->boundingBox);
     father->left = pLeft;
     father->right = pRight;
+
+    TileInfo* pLeftTile = new TileInfo;
+    TileInfo* pRightTile = new TileInfo;
+    parentTile->children.push_back(pLeftTile);
+    parentTile->children.push_back(pRightTile);
+
     if (dim.X() > dim.Y() && dim.X() > dim.Z())
     {
         // Split X
@@ -174,7 +182,7 @@ void SpatialTree::SplitTreeNode(MyTreeNode* father)
         }
     }
 
-    SplitTreeNode(pLeft);
-    SplitTreeNode(pRight);
+    splitTreeNode(pLeft, pLeftTile);
+    splitTreeNode(pRight, pRightTile);
     m_currentDepth--;
 }

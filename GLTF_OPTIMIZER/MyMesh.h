@@ -63,6 +63,7 @@ struct TileInfo
 {
     int level;
     std::vector<int> nodes;
+    std::vector<TileInfo*> children;
     vcg::Box3f* boundingBox;
     float geometryError;
     std::string contentUri;

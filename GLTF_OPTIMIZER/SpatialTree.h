@@ -43,11 +43,13 @@ private:
     int m_currentDepth;
     int m_maxTreeDepth;
     int m_tileLevels;
+    TileInfo* m_pTileRoot;
     std::map<int, std::vector<TileInfo>> m_levelLodInfosMap;
     Box3f getNodeBBox(tinygltf::Node* node);
 
     void deleteMyTreeNode(MyTreeNode* node);
+    void deleteTileInfo(TileInfo* tileInfo);
 private:
-    void SplitTreeNode(MyTreeNode* father);
+    void splitTreeNode(MyTreeNode* father, TileInfo* parentTile);
 };
 
