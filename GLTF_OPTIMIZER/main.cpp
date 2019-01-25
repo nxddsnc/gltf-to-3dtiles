@@ -7,7 +7,6 @@
 #define TILE_LEVEL 8
 using namespace tinygltf;
 using namespace std;
-
 // arguments:
 // -i Input gltf file path.
 // -o Output directory/

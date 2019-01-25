@@ -60,15 +60,174 @@ void LodExporter::traverseNode(tinygltf::Node* node, std::vector<int>& meshIdxs)
 
 bool LodExporter::ExportTileset()
 {
-    
+    traverseExportTile(m_pTileInfo, 0);
+
     return true;
 }
 
-void LodExporter::traverseExportTile(TileInfo* tileInfo)
+nlohmann::json LodExporter::traverseExportTileSetJson(TileInfo* tileInfo)
 {
+    nlohmann::json parent = nlohmann::json({});
+    Point3f center = tileInfo->boundingBox->Center();
+    float radius = tileInfo->boundingBox->Diag() * 0.5;
+    nlohmann::json boundingSphere = nlohmann::json::array();
+    boundingSphere.push_back(center.X());
+    boundingSphere.push_back(center.Y());
+    boundingSphere.push_back(center.Z());
+    boundingSphere.push_back(radius);
+    parent["boundingVolume"] = boundingSphere;
+    parent["geometricError"] = tileInfo->geometryError;
+    parent["refine"] = "REPLACE";
 
+    nlohmann::json content = nlohmann::json({});
+    content["uri"] = tileInfo->contentUri;
+    content["boundingVolume"] = boundingSphere;
+    parent["content"] = content;
+    
+    if (tileInfo->children.size() > 0)
+    {
+        nlohmann::json children = nlohmann::json::array();
+        for (int i = 0; i < tileInfo->children.size(); ++i)
+        {
+            nlohmann::json child = traverseExportTileSetJson(tileInfo->children[i]);
+            children.push_back(child);
+        }
+        parent["children"] = children;
+    }
+
+    return parent;
 }
 
+void LodExporter::traverseExportTile(TileInfo* tileInfo, int fileIdx)
+{
+    tileInfo->level = m_currentTileLevel++;
+    for (int i = 0; i < tileInfo->children.size(); ++i)
+    {
+        traverseExportTile(tileInfo->children[i], i);
+    }
+
+    std::vector<int> meshIdxs;
+    // FIXME: Cache it if there's performance  issue.
+    getMeshIdxs(tileInfo->nodes, meshIdxs);
+
+    // decimation
+    float geometryError = 0;
+    for (int j = 0; j < meshIdxs.size(); ++j)
+    {
+        MyMesh* myMesh = m_myMeshes[meshIdxs[j]];
+        if (myMesh->fn <= MIN_FACE_NUM)
+        {
+            continue;
+        }
+        // decimator initialization
+        vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
+        deciSession.Init<MyTriEdgeCollapse>();
+        uint32_t finalSize = myMesh->fn * 0.5;
+        deciSession.SetTargetSimplices(finalSize); // Target face number;
+        deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
+        deciSession.SetTargetOperations(100000);
+        int maxTry = 100;
+        int currentTry = 0;
+        do
+        {
+            deciSession.DoOptimization();
+            currentTry++;
+        } while (myMesh->fn > finalSize && currentTry < maxTry);
+
+        if (deciSession.currMetric > geometryError)
+        {
+            geometryError += deciSession.currMetric;
+        }
+    }
+    tileInfo->geometryError = geometryError;
+
+    m_currentAttributeBuffer.clear();
+    m_currentBatchIdBuffer.clear();
+    m_currentIndexBuffer.clear();
+    m_vertexUintMap.clear();
+    m_vertexUshortMap.clear();
+    m_materialCache.clear();
+
+    m_pNewModel = new Model(*m_pModel);
+
+    {
+        // FIXME: Support more than 3 bufferviews.
+        BufferView arraybufferView;
+        arraybufferView.target = TINYGLTF_TARGET_ARRAY_BUFFER;
+        arraybufferView.byteLength = 0;
+        arraybufferView.buffer = 0;
+        arraybufferView.byteStride = 12;
+        arraybufferView.byteOffset = 0;
+
+        BufferView batchIdArrayBufferView;
+        batchIdArrayBufferView.target = TINYGLTF_TARGET_ARRAY_BUFFER;
+        batchIdArrayBufferView.byteLength = 0;
+        batchIdArrayBufferView.buffer = 0;
+        batchIdArrayBufferView.byteStride = 4;
+        batchIdArrayBufferView.byteOffset = 0;
+
+        BufferView elementArraybufferView;
+        elementArraybufferView.target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
+        elementArraybufferView.byteLength = 0;
+        elementArraybufferView.buffer = 0;
+
+        m_pNewModel->bufferViews.push_back(arraybufferView);
+        m_pNewModel->bufferViews.push_back(batchIdArrayBufferView);
+        m_pNewModel->bufferViews.push_back(elementArraybufferView);
+    }
+
+    Node node;
+    node.children = tileInfo->nodes;
+    node.name = m_pModel->nodes[0].name;
+
+    addNode(&node);
+
+    m_pNewModel->scenes[0].nodes[0] = m_pNewModel->nodes.size() - 1;
+
+    {
+        // FIXME: Support more than 3 bufferviews.
+        m_pNewModel->bufferViews[1].byteOffset = m_currentAttributeBuffer.size();
+        m_pNewModel->bufferViews[2].byteOffset = m_currentAttributeBuffer.size() + m_currentBatchIdBuffer.size();
+    }
+
+    Buffer buffer;
+    char bufferName[1024];
+    sprintf(bufferName, "%d-%d.bin", tileInfo->level, fileIdx);
+    buffer.uri = string(bufferName);
+    buffer.data.resize(m_currentAttributeBuffer.size() + m_currentIndexBuffer.size() + m_currentBatchIdBuffer.size());
+    memcpy(buffer.data.data(), m_currentAttributeBuffer.data(), m_currentAttributeBuffer.size());
+    memcpy(buffer.data.data() + m_currentAttributeBuffer.size(), m_currentBatchIdBuffer.data(), m_currentBatchIdBuffer.size());
+    memcpy(buffer.data.data() + m_currentAttributeBuffer.size() + m_currentBatchIdBuffer.size(),
+        m_currentIndexBuffer.data(), m_currentIndexBuffer.size());
+    m_pNewModel->buffers.push_back(buffer);
+    
+    // output
+    char contentUri[1024];
+    sprintf(contentUri, "%d/%d.b3dm", tileInfo->level, fileIdx);
+    tileInfo->contentUri = string(contentUri);
+    string outputFilePath = getOutputFilePath(tileInfo->level, fileIdx);
+    if (outputFilePath.size() > 0)
+    {
+        bool bSuccess = m_pTinyGTLF->WriteGltfSceneToFile(m_pNewModel, outputFilePath);
+        if (bSuccess)
+        {
+            printf("export gltf success: %s\n", outputFilePath.c_str());
+        }
+        else
+        {
+            printf("gltf write error\n");
+        }
+    }
+    else
+    {
+        printf("cannot create output filepath\n");
+    }
+
+    m_currentTileLevel--;
+}
+
+
+// Deprecated
 void LodExporter::ExportLods(vector<TileInfo> lodInfos, int level)
 {
     float targetError = level * 100;
@@ -186,6 +345,7 @@ void LodExporter::ExportLods(vector<TileInfo> lodInfos, int level)
     }
 }
 
+//TODO: Add a class for manipulate the direcotry.
 std::string LodExporter::getOutputFilePath(int level, int index)
 {
     char outputDir[1024];

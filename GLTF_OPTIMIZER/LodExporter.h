@@ -3,6 +3,7 @@
 #include "MyMesh.h"
 #include <unordered_map>
 #include <stdio.h>
+#include "json.hpp"
 #define MIN_FACE_NUM 10 // If face number is less then this, don't decimate then. 
 
 
@@ -46,17 +47,20 @@ private:
     int addBuffer(AccessorType type);
 	std::unordered_map<int, int> m_materialCache; // map between old material and new material;
     std::string getOutputFilePath(int level, int index);
-    void traverseExportTile(TileInfo* tileInfo);
+    void traverseExportTile(TileInfo* tileInfo, int fileIdx);
+    nlohmann::json traverseExportTileSetJson(TileInfo* tileInfo);
 private:
     tinygltf::Model* m_pModel;
 	tinygltf::Model* m_pNewModel;
     std::vector<MyMesh*> m_myMeshes;
     TileInfo* m_pTileInfo;
+    int m_currentTileLevel;
     TriEdgeCollapseQuadricParameter* m_pParams;
     tinygltf::TinyGLTF* m_pTinyGTLF;
     MyMesh* m_pCurrentMesh;
     float m_currentBatchId;
     std::string m_outputDir;
+    nlohmann::json m_tilesetJson;
     std::vector<unsigned char> m_currentAttributeBuffer;
     std::vector<unsigned char> m_currentBatchIdBuffer;
     std::vector<unsigned char> m_currentIndexBuffer;
