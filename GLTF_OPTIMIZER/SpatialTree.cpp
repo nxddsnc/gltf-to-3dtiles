@@ -114,7 +114,7 @@ void SpatialTree::Initialize()
 
 void SpatialTree::SplitTreeNode(MyTreeNode* father)
 {
-    LodInfo lodInfo;
+    TileInfo lodInfo;
     lodInfo.level = m_currentDepth;
     lodInfo.nodes = father->nodes;
     lodInfo.boundingBox = father->boundingBox;
@@ -125,7 +125,7 @@ void SpatialTree::SplitTreeNode(MyTreeNode* father)
     }
     else 
     {
-        std::vector<LodInfo> lodInfos;
+        std::vector<TileInfo> lodInfos;
         lodInfos.push_back(lodInfo);
         m_levelLodInfosMap.insert(make_pair(m_maxTreeDepth - m_currentDepth, lodInfos));
     }

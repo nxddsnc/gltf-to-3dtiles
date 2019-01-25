@@ -58,7 +58,7 @@ void LodExporter::traverseNode(tinygltf::Node* node, std::vector<int>& meshIdxs)
     }
 }
 
-void LodExporter::ExportLods(vector<LodInfo> lodInfos, int level)
+void LodExporter::ExportLods(vector<TileInfo> lodInfos, int level)
 {
     float targetError = level * 100;
     for (int i = 0; i < lodInfos.size(); ++i)

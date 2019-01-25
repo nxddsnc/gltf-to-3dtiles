@@ -59,9 +59,11 @@ typedef typename MyMesh::VertexIterator VertexIterator;
 typedef typename MyMesh::FaceIterator FaceIterator;
 typedef typename MyMesh::EdgeIterator EdgeIterator;
 
-struct LodInfo
+struct TileInfo
 {
     int level;
     std::vector<int> nodes;
     vcg::Box3f* boundingBox;
+    float geometryError;
+    std::string contentUri;
 };

@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "tiny_gltf.h"
 #include "LodExporter.h"
-#define LOD_NUM 8
+#define TILE_LEVEL 8
 using namespace tinygltf;
 using namespace std;
 
@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     char* inputPath = NULL;
     char* outputPath = NULL;
     int maxTreeDepth = MAX_DEPTH;
-    int lodNumber = LOD_NUM;
+    int tileLevel = TILE_LEVEL;
     for (int i = 1; i < argc; ++i)
     {
         if (std::strcmp(argv[i], "-i") == 0)
@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
                 std::printf("Input error\n");
                 return -1;
             }
-            lodNumber = atoi(argv[i + 1]);
+            tileLevel = atoi(argv[i + 1]);
         }
         
     }
@@ -142,17 +142,17 @@ int main(int argc, char *argv[])
 
     SpatialTree spatialTree = SpatialTree(model, myMeshes);
     spatialTree.SetMaxTreeDepth(maxTreeDepth);
+    spatialTree.SetTileTotalLevels(tileLevel);
     spatialTree.Initialize();
 
     LodExporter lodExporter = LodExporter(model, myMeshes, tinyGltf);
     lodExporter.SetOutputDir(outputPath);
-    lodExporter.SetLodNumber(lodNumber);
-    std::map<int, std::vector<LodInfo>> lodInfosMap = spatialTree.GetLodInfosMap();
-    std::map<int, std::vector<LodInfo>>::iterator it = lodInfosMap.begin();
+    std::map<int, std::vector<TileInfo>> lodInfosMap = spatialTree.GetLodInfosMap();
+    std::map<int, std::vector<TileInfo>>::iterator it = lodInfosMap.begin();
     int maxLevel = it->first;
     for (; it != lodInfosMap.end(); ++it)
     {
-        vector<LodInfo> lodInfos = it->second;
+        vector<TileInfo> lodInfos = it->second;
         lodExporter.ExportLods(lodInfos, it->first);
     }
 
