@@ -13,6 +13,24 @@ SpatialTree::SpatialTree(Model* model, vector<MyMesh*> meshes)
 
 SpatialTree::~SpatialTree()
 {
+    deleteMyTreeNode(m_pRoot);
+}
+
+void SpatialTree::deleteMyTreeNode(MyTreeNode* node)
+{
+    if (node != NULL)
+    {
+        if (node->left != NULL) 
+        {
+            deleteMyTreeNode(node->left);
+        }
+        if (node->right != NULL)
+        {
+            deleteMyTreeNode(node->right);
+        }
+        delete node;
+        node = NULL;
+    }
 }
 
 Box3f SpatialTree::getNodeBBox(Node* node)
@@ -101,20 +119,20 @@ void SpatialTree::SplitTreeNode(MyTreeNode* father)
     lodInfo.nodes = father->nodes;
     lodInfo.boundingBox = father->boundingBox;
 
-    if (m_levelLodInfosMap.count(MAX_DEPTH - m_currentDepth) > 0)
+    if (m_levelLodInfosMap.count(m_maxTreeDepth - m_currentDepth) > 0)
     {
-        m_levelLodInfosMap.at(MAX_DEPTH - m_currentDepth).push_back(lodInfo);
+        m_levelLodInfosMap.at(m_maxTreeDepth - m_currentDepth).push_back(lodInfo);
     }
     else 
     {
         std::vector<LodInfo> lodInfos;
         lodInfos.push_back(lodInfo);
-        m_levelLodInfosMap.insert(make_pair(MAX_DEPTH - m_currentDepth, lodInfos));
+        m_levelLodInfosMap.insert(make_pair(m_maxTreeDepth - m_currentDepth, lodInfos));
     }
 
     m_currentDepth++;
     Point3f dim = father->boundingBox->Dim();
-    if (father->nodes.size() < MIN_TREE_NODE || m_currentDepth > MAX_DEPTH)
+    if (father->nodes.size() < MIN_TREE_NODE || m_currentDepth > m_maxTreeDepth)
     {
         m_currentDepth--;
         return;

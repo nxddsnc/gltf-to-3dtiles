@@ -4,15 +4,21 @@
 #include <stdint.h>
 #include "tiny_gltf.h"
 #include "LodExporter.h"
-
+#define LOD_NUM 8
 using namespace tinygltf;
 using namespace std;
 
+// arguments:
+// -i Input gltf file path.
+// -o Output directory/
+// -d Max depth of the binary tree.
+// -l Lod number.
 int main(int argc, char *argv[])
 {
     char* inputPath = NULL;
     char* outputPath = NULL;
-    uint32_t idBegin = -1;
+    int maxTreeDepth = MAX_DEPTH;
+    int lodNumber = LOD_NUM;
     for (int i = 1; i < argc; ++i)
     {
         if (std::strcmp(argv[i], "-i") == 0)
@@ -33,16 +39,25 @@ int main(int argc, char *argv[])
             }
             outputPath = argv[i + 1];
         }
-        else if (std::strcmp(argv[i], "-idBegin") == 0)
+        else if (std::strcmp(argv[i], "-d") == 0)
         {
-
             if (i + 1 >= argc)
             {
                 std::printf("Input error\n");
                 return -1;
             }
-            idBegin = atoi(argv[i + 1]);
+            maxTreeDepth = atoi(argv[i + 1]);
         }
+        else if (std::strcmp(argv[i], "-l") == 0)
+        {
+            if (i + 1 >= argc)
+            {
+                std::printf("Input error\n");
+                return -1;
+            }
+            lodNumber = atoi(argv[i + 1]);
+        }
+        
     }
 
     std::printf("intput file path: %s\n", inputPath);
@@ -126,10 +141,12 @@ int main(int argc, char *argv[])
     /****************************************  step0. Read gltf into vcglib mesh.  ******************************************************/
 
     SpatialTree spatialTree = SpatialTree(model, myMeshes);
+    spatialTree.SetMaxTreeDepth(maxTreeDepth);
     spatialTree.Initialize();
 
     LodExporter lodExporter = LodExporter(model, myMeshes, tinyGltf);
     lodExporter.SetOutputDir(outputPath);
+    lodExporter.SetLodNumber(lodNumber);
     std::map<int, std::vector<LodInfo>> lodInfosMap = spatialTree.GetLodInfosMap();
     std::map<int, std::vector<LodInfo>>::iterator it = lodInfosMap.begin();
     int maxLevel = it->first;
@@ -149,16 +166,7 @@ int main(int argc, char *argv[])
 	
     /***********************  step1. Figure out the material with different ids and have the same value. ********************************/
 
-    /***********************  step2. Simpilify meshes. ( This should be done before the mesh is merged.  ********************************/
-    // Since we use quadratic error method, the gaps between maybe closed. 
-    
-    
-    /***********************  step2. Simpilify meshes. ( This should be done before the mesh is merged.  ********************************/
-    // TODO: 
-
-    /**********************   step3. Merge the meshes and add "batchId" in vertex attributes.   *****************************************/
-    // TODO:
-
-    /**********************   step3. Merge the meshes and add "batchId" in vertex attributes.   *****************************************/
+    delete model;
+    model = NULL;
     return 0;
 }

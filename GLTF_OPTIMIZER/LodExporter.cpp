@@ -272,7 +272,7 @@ int LodExporter::addAccessor(AccessorType type)
     {
     case BATCH_ID:
         newAccessor.type = TINYGLTF_TYPE_SCALAR;
-        newAccessor.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
+        newAccessor.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
         newAccessor.count = m_pCurrentMesh->vn;
         break;
     case POSITION:

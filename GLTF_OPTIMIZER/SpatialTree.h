@@ -33,14 +33,18 @@ public:
     MyTreeNode* GetRoot() { return m_pRoot; }
     std::map<int, std::vector<LodInfo>> GetLodInfosMap() { return m_levelLodInfosMap; }
     void Initialize();
+    void SetMaxTreeDepth(int maxDepth) { m_maxTreeDepth = maxDepth; }
 private: 
     tinygltf::Model* m_pModel;
     std::vector<MyMesh*> m_meshes;
     MyTreeNode* m_pRoot;
     std::unordered_map<int, vcg::Box3f> m_nodeBoxMap; // Start from the sceond node of the scene.
     int m_currentDepth;
+    int m_maxTreeDepth;
     std::map<int, std::vector<LodInfo>> m_levelLodInfosMap;
     Box3f getNodeBBox(tinygltf::Node* node);
+
+    void deleteMyTreeNode(MyTreeNode* node);
 private:
     void SplitTreeNode(MyTreeNode* father);
 };
