@@ -9,10 +9,20 @@
 #define MAX_DEPTH 4
 
 
-struct MyTreeNode
+class MyTreeNode
 {
+public:
+    MyTreeNode() {}
+    ~MyTreeNode()
+    {
+        if (boundingBox != NULL)
+        {
+            delete boundingBox;
+            boundingBox = NULL;
+        }
+    }
     std::vector<int> nodes;
-    vcg::Box3f* boundingBox;
+    vcg::Box3f* boundingBox = NULL;
     MyTreeNode* left = NULL;
     MyTreeNode* right = NULL;
 };

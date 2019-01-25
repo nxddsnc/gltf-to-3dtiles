@@ -24,6 +24,7 @@ LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinyg
     //m_pParams->QualityWeight = false;
 
     m_pTinyGTLF = tinyGLTF;
+    m_currentTileLevel = 0;
 }
 
 LodExporter::~LodExporter()
@@ -61,6 +62,19 @@ void LodExporter::traverseNode(tinygltf::Node* node, std::vector<int>& meshIdxs)
 bool LodExporter::ExportTileset()
 {
     traverseExportTile(m_pTileInfo, 0);
+    
+    nlohmann::json tilesetJson = nlohmann::json({});
+    nlohmann::json version = nlohmann::json({});
+    version["version"] = "1.0";
+    tilesetJson["asset"] = version;
+    tilesetJson["geometricError"] = "200000";
+    nlohmann::json root = nlohmann::json({});
+    tilesetJson["root"] = traverseExportTileSetJson(m_pTileInfo);
+    
+    char filepath[1024];
+    sprintf(filepath, "%s/tileset.json", m_outputDir);
+    std::ofstream file(filepath);
+    file << tilesetJson;
 
     return true;
 }
@@ -75,7 +89,8 @@ nlohmann::json LodExporter::traverseExportTileSetJson(TileInfo* tileInfo)
     boundingSphere.push_back(center.Y());
     boundingSphere.push_back(center.Z());
     boundingSphere.push_back(radius);
-    parent["boundingVolume"] = boundingSphere;
+    parent["boundingVolume"] = nlohmann::json({});
+    parent["boundingVolume"]["sphere"] = boundingSphere;
     parent["geometricError"] = tileInfo->geometryError;
     parent["refine"] = "REPLACE";
 

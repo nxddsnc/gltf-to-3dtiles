@@ -166,13 +166,6 @@ void SpatialTree::splitTreeNode(MyTreeNode* father, TileInfo* parentTile)
     MyTreeNode* pRight = new MyTreeNode();
     pLeft->boundingBox = new Box3f(*father->boundingBox);
     pRight->boundingBox  = new Box3f(*father->boundingBox);
-    father->left = pLeft;
-    father->right = pRight;
-
-    TileInfo* pLeftTile = new TileInfo;
-    TileInfo* pRightTile = new TileInfo;
-    parentTile->children.push_back(pLeftTile);
-    parentTile->children.push_back(pRightTile);
 
     if (dim.X() > dim.Y() && dim.X() > dim.Z())
     {
@@ -204,7 +197,33 @@ void SpatialTree::splitTreeNode(MyTreeNode* father, TileInfo* parentTile)
         }
     }
 
-    splitTreeNode(pLeft, pLeftTile);
-    splitTreeNode(pRight, pRightTile);
+    // delete if children is empty
+    if (pLeft->nodes.size() == 0)
+    {
+        delete pLeft;
+        pLeft = NULL;
+    }
+    else
+    {
+        TileInfo* pLeftTile = new TileInfo;
+        parentTile->children.push_back(pLeftTile);
+        splitTreeNode(pLeft, pLeftTile);
+        father->left = pLeft;
+    }
+
+    // delete if children is empty
+    if (pRight->nodes.size() == 0)
+    {
+        delete pRight;
+        pRight = NULL;
+    }
+    else
+    {
+        TileInfo* pRightTile = new TileInfo;
+        parentTile->children.push_back(pRightTile);
+        splitTreeNode(pRight, pRightTile);
+        father->right = pRight;
+    }
+
     m_currentDepth--;
 }
