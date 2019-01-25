@@ -165,7 +165,10 @@ int main(int argc, char *argv[])
 	}*/
 	
     /***********************  step1. Figure out the material with different ids and have the same value. ********************************/
-
+    for (int i = 0; i < myMeshes.size(); ++i)
+    {
+        delete myMeshes[i];
+    }
     delete model;
     model = NULL;
     return 0;
