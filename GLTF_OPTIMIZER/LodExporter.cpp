@@ -61,7 +61,7 @@ void LodExporter::traverseNode(tinygltf::Node* node, std::vector<int>& meshIdxs)
 
 bool LodExporter::ExportTileset()
 {
-    traverseExportTile(m_pTileInfo, 0);
+    traverseExportTile(m_pTileInfo);
     
     nlohmann::json tilesetJson = nlohmann::json({});
     nlohmann::json version = nlohmann::json({});
@@ -96,7 +96,8 @@ nlohmann::json LodExporter::traverseExportTileSetJson(TileInfo* tileInfo)
 
     nlohmann::json content = nlohmann::json({});
     content["uri"] = tileInfo->contentUri;
-    content["boundingVolume"] = boundingSphere;
+    content["boundingVolume"] = nlohmann::json({}); 
+    content["boundingVolume"]["sphere"] = boundingSphere;
     parent["content"] = content;
     
     if (tileInfo->children.size() > 0)
@@ -113,12 +114,12 @@ nlohmann::json LodExporter::traverseExportTileSetJson(TileInfo* tileInfo)
     return parent;
 }
 
-void LodExporter::traverseExportTile(TileInfo* tileInfo, int fileIdx)
+void LodExporter::traverseExportTile(TileInfo* tileInfo)
 {
     tileInfo->level = m_currentTileLevel++;
     for (int i = 0; i < tileInfo->children.size(); ++i)
     {
-        traverseExportTile(tileInfo->children[i], i);
+        traverseExportTile(tileInfo->children[i]);
     }
 
     std::vector<int> meshIdxs;
@@ -207,6 +208,16 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo, int fileIdx)
 
     Buffer buffer;
     char bufferName[1024];
+    int fileIdx = 0;
+    if (m_levelAccumMap.count(tileInfo->level) > 0)
+    {
+        fileIdx = m_levelAccumMap.at(tileInfo->level);
+        m_levelAccumMap.at(tileInfo->level)++;
+    }
+    else
+    {
+        m_levelAccumMap.insert(make_pair(tileInfo->level, fileIdx));
+    }
     sprintf(bufferName, "%d-%d.bin", tileInfo->level, fileIdx);
     buffer.uri = string(bufferName);
     buffer.data.resize(m_currentAttributeBuffer.size() + m_currentIndexBuffer.size() + m_currentBatchIdBuffer.size());
@@ -218,7 +229,7 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo, int fileIdx)
     
     // output
     char contentUri[1024];
-    sprintf(contentUri, "%d/%d.b3dm", tileInfo->level, fileIdx);
+    sprintf(contentUri, "%d/%d-%d.b3dm", tileInfo->level, tileInfo->level, fileIdx);
     tileInfo->contentUri = string(contentUri);
     string outputFilePath = getOutputFilePath(tileInfo->level, fileIdx);
     if (outputFilePath.size() > 0)

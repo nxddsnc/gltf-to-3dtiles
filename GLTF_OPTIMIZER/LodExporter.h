@@ -47,7 +47,7 @@ private:
     int addBuffer(AccessorType type);
 	std::unordered_map<int, int> m_materialCache; // map between old material and new material;
     std::string getOutputFilePath(int level, int index);
-    void traverseExportTile(TileInfo* tileInfo, int fileIdx);
+    void traverseExportTile(TileInfo* tileInfo);
     nlohmann::json traverseExportTileSetJson(TileInfo* tileInfo);
 private:
     tinygltf::Model* m_pModel;
@@ -68,6 +68,7 @@ private:
     std::unordered_map<MyVertex*, uint32_t> m_vertexUintMap;
     std::unordered_map<MyVertex*, uint16_t> m_vertexUshortMap;
 
+    std::unordered_map<int, int> m_levelAccumMap;
     float m_positionMax[3];
     float m_positionMin[3];
 };
