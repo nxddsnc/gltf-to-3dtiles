@@ -156,15 +156,8 @@ int main(int argc, char *argv[])
         lodExporter.ExportLods(lodInfos, it->first);
     }
 
-    /***********************  step1. Figure out the material with different ids and have the same value. ********************************/
-    // TODO:
-	/*for (int i = 0;i < model->meshes.size(); ++i)
-	{
-		int materialIdx = model->meshes[i].primitives[0].material;
-		
-	}*/
-	
-    /***********************  step1. Figure out the material with different ids and have the same value. ********************************/
+    // TODO: Merge draw calls according to material
+
     for (int i = 0; i < myMeshes.size(); ++i)
     {
         delete myMeshes[i];
