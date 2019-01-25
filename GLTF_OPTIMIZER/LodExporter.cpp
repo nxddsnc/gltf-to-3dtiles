@@ -385,7 +385,7 @@ std::string LodExporter::getOutputFilePath(int level, int index)
     {
         char outputFilePath[1024];
         //sprintf(outputFilePath, "%s/%d/%d.gltf", m_outputDir.c_str(), level, index);
-        sprintf(outputFilePath, "%s/%d/%d.glb", m_outputDir.c_str(), level, index);
+        sprintf(outputFilePath, "%s/%d/%d-%d.glb", m_outputDir.c_str(), level, level, index);
         return string(outputFilePath);
     }
     else
