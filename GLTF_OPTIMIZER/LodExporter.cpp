@@ -234,7 +234,7 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     string outputFilePath = getOutputFilePath(tileInfo->level, fileIdx);
     if (outputFilePath.size() > 0)
     {
-        bool bSuccess = m_pTinyGTLF->WriteGltfSceneToFile(m_pNewModel, outputFilePath);
+        bool bSuccess = m_pTinyGTLF->WriteGltfSceneToFile(m_pNewModel, outputFilePath, false, false, true, true);
         if (bSuccess)
         {
             printf("export gltf success: %s\n", outputFilePath.c_str());
@@ -384,7 +384,8 @@ std::string LodExporter::getOutputFilePath(int level, int index)
     if (CreateDirectory(pWOutputDir, NULL) || ERROR_ALREADY_EXISTS == GetLastError())
     {
         char outputFilePath[1024];
-        sprintf(outputFilePath, "%s/%d/%d.gltf", m_outputDir.c_str(), level, index);
+        //sprintf(outputFilePath, "%s/%d/%d.gltf", m_outputDir.c_str(), level, index);
+        sprintf(outputFilePath, "%s/%d/%d.glb", m_outputDir.c_str(), level, index);
         return string(outputFilePath);
     }
     else
