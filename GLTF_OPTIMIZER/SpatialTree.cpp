@@ -31,6 +31,23 @@ void SpatialTree::deleteTileInfo(TileInfo* tileInfo)
     }
 }
 
+TileInfo* SpatialTree::GetTilesetInfo()
+{
+    if (m_treeDepth < m_tileLevels - 1)
+    {
+        for (int i = 0; i < m_tileLevels - m_treeDepth - 1; ++i)
+        {
+            TileInfo* tileInfo = new TileInfo;
+            tileInfo->boundingBox = m_pTileRoot->boundingBox;
+            tileInfo->nodes = m_pTileRoot->nodes;
+            tileInfo->children.push_back(m_pTileRoot);
+            m_pTileRoot = tileInfo;
+        }
+        m_treeDepth = m_tileLevels - 1;
+    }
+    return m_pTileRoot;
+}
+
 void SpatialTree::deleteMyTreeNode(MyTreeNode* node)
 {
     if (node != NULL)
@@ -131,6 +148,11 @@ void SpatialTree::splitTreeNode(MyTreeNode* father, TileInfo* parentTile)
 {
     parentTile->boundingBox = father->boundingBox;
     parentTile->nodes = father->nodes;
+
+    if (m_currentDepth > m_treeDepth) 
+    {
+        m_treeDepth = m_currentDepth;
+    }
 
     m_currentDepth++;
     Point3f dim = father->boundingBox->Dim();

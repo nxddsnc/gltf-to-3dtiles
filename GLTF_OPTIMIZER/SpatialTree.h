@@ -31,10 +31,11 @@ public:
     ~SpatialTree();
 
     MyTreeNode* GetRoot() { return m_pRoot; }
-    std::map<int, std::vector<TileInfo>> GetLodInfosMap() { return m_levelLodInfosMap; }
     void Initialize();
     void SetMaxTreeDepth(int maxDepth) { m_maxTreeDepth = maxDepth; }
     void SetTileTotalLevels(int  tileLevels) { m_tileLevels = tileLevels; }
+    
+    TileInfo* GetTilesetInfo();
 private: 
     tinygltf::Model* m_pModel;
     std::vector<MyMesh*> m_meshes;
@@ -43,8 +44,8 @@ private:
     int m_currentDepth;
     int m_maxTreeDepth;
     int m_tileLevels;
+    int m_treeDepth;
     TileInfo* m_pTileRoot;
-    std::map<int, std::vector<TileInfo>> m_levelLodInfosMap;
     Box3f getNodeBBox(tinygltf::Node* node);
 
     void deleteMyTreeNode(MyTreeNode* node);

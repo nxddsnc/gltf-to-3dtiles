@@ -31,6 +31,8 @@ public:
     ~LodExporter();
     void ExportLods(std::vector<TileInfo> lodInfos, int level);
     void SetOutputDir(std::string dir) { m_outputDir = dir; }
+    void SetTileInfo(TileInfo* tileInfo) { m_pTileInfo = tileInfo; }
+    bool ExportTileset();
 private:
     void getMeshIdxs(std::vector<int> nodeIdxs, std::vector<int>& meshIdxs);
     void traverseNode(tinygltf::Node* node, std::vector<int>& meshIdxs);
@@ -44,10 +46,12 @@ private:
     int addBuffer(AccessorType type);
 	std::unordered_map<int, int> m_materialCache; // map between old material and new material;
     std::string getOutputFilePath(int level, int index);
+    void traverseExportTile(TileInfo* tileInfo);
 private:
     tinygltf::Model* m_pModel;
 	tinygltf::Model* m_pNewModel;
     std::vector<MyMesh*> m_myMeshes;
+    TileInfo* m_pTileInfo;
     TriEdgeCollapseQuadricParameter* m_pParams;
     tinygltf::TinyGLTF* m_pTinyGTLF;
     MyMesh* m_pCurrentMesh;

@@ -144,16 +144,20 @@ int main(int argc, char *argv[])
     spatialTree.SetMaxTreeDepth(maxTreeDepth);
     spatialTree.SetTileTotalLevels(tileLevel);
     spatialTree.Initialize();
+    TileInfo* tileInfo = spatialTree.GetTilesetInfo();
 
     LodExporter lodExporter = LodExporter(model, myMeshes, tinyGltf);
     lodExporter.SetOutputDir(outputPath);
-    std::map<int, std::vector<TileInfo>> lodInfosMap = spatialTree.GetLodInfosMap();
-    std::map<int, std::vector<TileInfo>>::iterator it = lodInfosMap.begin();
-    int maxLevel = it->first;
-    for (; it != lodInfosMap.end(); ++it)
+    lodExporter.SetTileInfo(tileInfo);
+    bool success = lodExporter.ExportTileset();
+    
+    if (success)
     {
-        vector<TileInfo> lodInfos = it->second;
-        lodExporter.ExportLods(lodInfos, it->first);
+        printf("export tileset to %s successfully\n", outputPath);
+    }
+    else
+    {
+        printf("export error\n");
     }
 
     // TODO: Merge draw calls according to material
