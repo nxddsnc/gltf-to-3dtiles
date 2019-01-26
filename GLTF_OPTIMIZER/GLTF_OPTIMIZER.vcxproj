@@ -158,6 +158,7 @@
     <ClCompile Include="SpatialTree.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="globals.h" />
     <ClInclude Include="LodExporter.h" />
     <ClInclude Include="MyMesh.h" />
     <ClInclude Include="SpatialTree.h" />

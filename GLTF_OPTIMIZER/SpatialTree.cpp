@@ -1,4 +1,5 @@
 #include "SpatialTree.h"
+#include "globals.h"
 using namespace tinygltf;
 using namespace std;
 using namespace vcg;
@@ -33,9 +34,9 @@ void SpatialTree::deleteTileInfo(TileInfo* tileInfo)
 
 TileInfo* SpatialTree::GetTilesetInfo()
 {
-    if (m_treeDepth < m_tileLevels - 1)
+    if (m_treeDepth < g_settings.tileLevel - 1)
     {
-        for (int i = 0; i < m_tileLevels - m_treeDepth - 1; ++i)
+        for (int i = 0; i < g_settings.tileLevel - m_treeDepth - 1; ++i)
         {
             TileInfo* tileInfo = new TileInfo;
             tileInfo->boundingBox = m_pTileRoot->boundingBox;
@@ -43,7 +44,7 @@ TileInfo* SpatialTree::GetTilesetInfo()
             tileInfo->children.push_back(m_pTileRoot);
             m_pTileRoot = tileInfo;
         }
-        m_treeDepth = m_tileLevels - 1;
+        m_treeDepth = g_settings.tileLevel - 1;
     }
     return m_pTileRoot;
 }
@@ -156,7 +157,7 @@ void SpatialTree::splitTreeNode(MyTreeNode* father, TileInfo* parentTile)
 
     m_currentDepth++;
     Point3f dim = father->boundingBox->Dim();
-    if (father->nodes.size() < MIN_TREE_NODE || m_currentDepth > m_maxTreeDepth)
+    if (father->nodes.size() < MIN_TREE_NODE || m_currentDepth > g_settings.maxTreeDepth)
     {
         m_currentDepth--;
         return;

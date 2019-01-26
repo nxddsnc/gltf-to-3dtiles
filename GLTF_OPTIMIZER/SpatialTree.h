@@ -42,9 +42,6 @@ public:
 
     MyTreeNode* GetRoot() { return m_pRoot; }
     void Initialize();
-    void SetMaxTreeDepth(int maxDepth) { m_maxTreeDepth = maxDepth; }
-    void SetTileTotalLevels(int  tileLevels) { m_tileLevels = tileLevels; }
-    
     TileInfo* GetTilesetInfo();
 private: 
     tinygltf::Model* m_pModel;
@@ -52,8 +49,6 @@ private:
     MyTreeNode* m_pRoot;
     std::unordered_map<int, vcg::Box3f> m_nodeBoxMap; // Start from the sceond node of the scene.
     int m_currentDepth;
-    int m_maxTreeDepth;
-    int m_tileLevels;
     int m_treeDepth;
     TileInfo* m_pTileRoot;
     Box3f getNodeBBox(tinygltf::Node* node);

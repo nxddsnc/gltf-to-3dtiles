@@ -1,5 +1,6 @@
 #include "LodExporter.h"
 #include "tiny_gltf.h"
+#include "globals.h"
 using namespace tinygltf;
 
 LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinygltf::TinyGLTF* tinyGLTF)
@@ -72,7 +73,7 @@ bool LodExporter::ExportTileset()
     tilesetJson["root"] = traverseExportTileSetJson(m_pTileInfo);
     
     char filepath[1024];
-    sprintf(filepath, "%s/tileset.json", m_outputDir);
+    sprintf(filepath, "%s/tileset.json", g_settings.outputPath);
     std::ofstream file(filepath);
     file << tilesetJson;
 
@@ -375,7 +376,7 @@ void LodExporter::ExportLods(vector<TileInfo> lodInfos, int level)
 std::string LodExporter::getOutputFilePath(int level, int index)
 {
     char outputDir[1024];
-    sprintf(outputDir, "%s/%d", m_outputDir.c_str(), level);
+    sprintf(outputDir, "%s/%d", g_settings.outputPath, level);
 
     wchar_t wOutputDir[1024];
     mbstowcs(wOutputDir, outputDir, strlen(outputDir) + 1); // Plus null
@@ -384,8 +385,14 @@ std::string LodExporter::getOutputFilePath(int level, int index)
     if (CreateDirectory(pWOutputDir, NULL) || ERROR_ALREADY_EXISTS == GetLastError())
     {
         char outputFilePath[1024];
-        //sprintf(outputFilePath, "%s/%d/%d.gltf", m_outputDir.c_str(), level, index);
-        sprintf(outputFilePath, "%s/%d/%d-%d.glb", m_outputDir.c_str(), level, level, index);
+		if (g_settings.writeBinary)
+		{
+			sprintf(outputFilePath, "%s/%d/%d-%d.glb", g_settings.outputPath, level, level, index);
+		}
+		else
+		{
+			sprintf(outputFilePath, "%s/%d/%d.gltf", g_settings.outputPath, level, index);
+		}
         return string(outputFilePath);
     }
     else

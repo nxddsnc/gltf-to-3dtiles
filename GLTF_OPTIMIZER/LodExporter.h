@@ -31,7 +31,6 @@ public:
     LodExporter(tinygltf::Model* model, std::vector<MyMesh*> myMeshes, tinygltf::TinyGLTF* tinyGLTF);
     ~LodExporter();
     void ExportLods(std::vector<TileInfo> lodInfos, int level);
-    void SetOutputDir(std::string dir) { m_outputDir = dir; }
     void SetTileInfo(TileInfo* tileInfo) { m_pTileInfo = tileInfo; }
     bool ExportTileset();
 private:
@@ -59,7 +58,6 @@ private:
     tinygltf::TinyGLTF* m_pTinyGTLF;
     MyMesh* m_pCurrentMesh;
     float m_currentBatchId;
-    std::string m_outputDir;
     nlohmann::json m_tilesetJson;
     std::vector<unsigned char> m_currentAttributeBuffer;
     std::vector<unsigned char> m_currentBatchIdBuffer;

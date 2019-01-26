@@ -4,22 +4,27 @@
 #include <stdint.h>
 #include "tiny_gltf.h"
 #include "LodExporter.h"
+#include "globals.h"
 #define TILE_LEVEL 8
 using namespace tinygltf;
 using namespace std;
+
 // arguments:
 // -i Input gltf file path.
 // -o Output directory/
 // -d Max depth of the binary tree.
 // -l Lod number.
+// -b output glb instead of gltf.
 int main(int argc, char *argv[])
 {
-    char* inputPath = NULL;
-    char* outputPath = NULL;
-    int maxTreeDepth = MAX_DEPTH;
-    int tileLevel = TILE_LEVEL;
+	// TODO: Make these variables global.
+	g_settings.inputPath = NULL;
+	g_settings.outputPath = NULL;
+	g_settings.maxTreeDepth = MAX_DEPTH;
+	g_settings.tileLevel = TILE_LEVEL;
+	g_settings.writeBinary = false;
     for (int i = 1; i < argc; ++i)
-    {
+	{
         if (std::strcmp(argv[i], "-i") == 0)
         {
             if (i + 1 >= argc)
@@ -27,7 +32,7 @@ int main(int argc, char *argv[])
                 std::printf("Input error\n");
                 return -1;
             }
-            inputPath = argv[i + 1];
+			g_settings.inputPath = argv[i + 1];
         }
         else if (std::strcmp(argv[i], "-o") == 0)
         {
@@ -36,7 +41,7 @@ int main(int argc, char *argv[])
                 std::printf("Input error\n");
                 return -1;
             }
-            outputPath = argv[i + 1];
+			g_settings.outputPath = argv[i + 1];
         }
         else if (std::strcmp(argv[i], "-d") == 0)
         {
@@ -45,7 +50,7 @@ int main(int argc, char *argv[])
                 std::printf("Input error\n");
                 return -1;
             }
-            maxTreeDepth = atoi(argv[i + 1]);
+			g_settings.maxTreeDepth = atoi(argv[i + 1]);
         }
         else if (std::strcmp(argv[i], "-l") == 0)
         {
@@ -54,12 +59,16 @@ int main(int argc, char *argv[])
                 std::printf("Input error\n");
                 return -1;
             }
-            tileLevel = atoi(argv[i + 1]);
+			g_settings.tileLevel = atoi(argv[i + 1]);
         }
-        
+		else if (std::strcmp(argv[i], "-b") == 0)
+		{
+			g_settings.writeBinary = true;
+		}
     }
 
-    std::printf("intput file path: %s\n", inputPath);
+    std::printf("intput file path: %s\n", g_settings.inputPath);
+	std::printf("output file dir: %s\n", g_settings.outputPath);
     
     /****************************************  step0. Read gltf into vcglib mesh.  ******************************************************/
     Model *model = new Model;
@@ -67,7 +76,7 @@ int main(int argc, char *argv[])
     TinyGLTF* tinyGltf = new TinyGLTF;
     std::string err;
     std::string warn;
-    bool ret = tinyGltf->LoadASCIIFromFile(model, &err, &warn, inputPath);
+    bool ret = tinyGltf->LoadASCIIFromFile(model, &err, &warn, g_settings.inputPath);
 
     for (int i = 0; i < model->meshes.size(); ++i)
     {
@@ -140,19 +149,16 @@ int main(int argc, char *argv[])
     /****************************************  step0. Read gltf into vcglib mesh.  ******************************************************/
 
     SpatialTree spatialTree = SpatialTree(model, myMeshes);
-    spatialTree.SetMaxTreeDepth(maxTreeDepth);
-    spatialTree.SetTileTotalLevels(tileLevel);
     spatialTree.Initialize();
     TileInfo* tileInfo = spatialTree.GetTilesetInfo();
 
     LodExporter lodExporter = LodExporter(model, myMeshes, tinyGltf);
-    lodExporter.SetOutputDir(outputPath);
     lodExporter.SetTileInfo(tileInfo);
     bool success = lodExporter.ExportTileset();
     
     if (success)
     {
-        printf("export tileset to %s successfully\n", outputPath);
+        printf("export tileset to %s successfully\n", g_settings.outputPath);
     }
     else
     {
