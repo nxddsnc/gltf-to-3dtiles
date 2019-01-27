@@ -155,11 +155,13 @@
     <ClCompile Include="..\..\vcglib\wrap\ply\plylib.cpp" />
     <ClCompile Include="LodExporter.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MergeMesh.cpp" />
     <ClCompile Include="SpatialTree.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="globals.h" />
     <ClInclude Include="LodExporter.h" />
+    <ClInclude Include="MergeMesh.h" />
     <ClInclude Include="MyMesh.h" />
     <ClInclude Include="SpatialTree.h" />
     <ClInclude Include="tinyGltf\json.hpp" />
