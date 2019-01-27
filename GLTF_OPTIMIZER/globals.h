@@ -8,4 +8,4 @@ struct GlobalSetting
 	bool writeBinary;
 };
 
-static GlobalSetting g_settings;
+extern GlobalSetting g_settings;

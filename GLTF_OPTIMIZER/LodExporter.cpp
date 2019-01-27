@@ -71,7 +71,26 @@ bool LodExporter::ExportTileset()
     tilesetJson["geometricError"] = "200000";
     nlohmann::json root = nlohmann::json({});
     tilesetJson["root"] = traverseExportTileSetJson(m_pTileInfo);
-    
+
+	// add a dummy transform to root to make the tileset position at globe surface.
+	nlohmann::json dummyTransform = nlohmann::json::array();
+	dummyTransform.push_back(0.9717966035675396);
+	dummyTransform.push_back(0.23582061253120834);
+	dummyTransform.push_back(0);
+	dummyTransform.push_back(0);
+	dummyTransform.push_back(-0.13509253137814733);
+	dummyTransform.push_back(0.5567047839944483);
+	dummyTransform.push_back(0.8196522381129321);
+	dummyTransform.push_back(0);
+	dummyTransform.push_back(0.19329089285436749);
+	dummyTransform.push_back(-0.7965352611046796);
+	dummyTransform.push_back(0.5728614217735919);
+	dummyTransform.push_back(0);
+	dummyTransform.push_back(1234215.482895546);
+	dummyTransform.push_back(-5086096.594671654);
+	dummyTransform.push_back(3633390.4238980953);
+	dummyTransform.push_back(1);
+	tilesetJson["root"]["transform"] = dummyTransform;
     char filepath[1024];
     sprintf(filepath, "%s/tileset.json", g_settings.outputPath);
     std::ofstream file(filepath);
@@ -129,33 +148,38 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
 
     // decimation
     float geometryError = 0;
-    for (int j = 0; j < meshIdxs.size(); ++j)
-    {
-        MyMesh* myMesh = m_myMeshes[meshIdxs[j]];
-        if (myMesh->fn <= MIN_FACE_NUM)
-        {
-            continue;
-        }
-        // decimator initialization
-        vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
-        deciSession.Init<MyTriEdgeCollapse>();
-        uint32_t finalSize = myMesh->fn * 0.5;
-        deciSession.SetTargetSimplices(finalSize); // Target face number;
-        deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
-        deciSession.SetTargetOperations(100000);
-        int maxTry = 100;
-        int currentTry = 0;
-        do
-        {
-            deciSession.DoOptimization();
-            currentTry++;
-        } while (myMesh->fn > finalSize && currentTry < maxTry);
+	if (m_currentTileLevel != g_settings.tileLevel)
+	{
+		for (int j = 0; j < meshIdxs.size(); ++j)
+		{
+			MyMesh* myMesh = m_myMeshes[meshIdxs[j]];
+			if (myMesh->fn <= MIN_FACE_NUM)
+			{
+				continue;
+			}
+			// decimator initialization
+			vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
+			deciSession.Init<MyTriEdgeCollapse>();
+			uint32_t finalSize = myMesh->fn * 0.5;
+			deciSession.SetTargetSimplices(finalSize); // Target face number;
+			deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
+			deciSession.SetTargetOperations(100000);
+			int maxTry = 100;
+			int currentTry = 0;
+			do
+			{
+				deciSession.DoOptimization();
+				currentTry++;
+			} while (myMesh->fn > finalSize && currentTry < maxTry);
 
-        if (deciSession.currMetric > geometryError)
-        {
-            geometryError += deciSession.currMetric;
-        }
-    }
+			if (deciSession.currMetric > geometryError)
+			{
+				// TODO: Look into geometricError.
+				geometryError += deciSession.currMetric / m_myMeshes[meshIdxs[j]]->VertexNumber();
+			}
+		}
+	}
+    
     tileInfo->geometryError = geometryError;
 
     m_currentAttributeBuffer.clear();
@@ -235,7 +259,15 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     string outputFilePath = getOutputFilePath(tileInfo->level, fileIdx);
     if (outputFilePath.size() > 0)
     {
-        bool bSuccess = m_pTinyGTLF->WriteGltfSceneToFile(m_pNewModel, outputFilePath, false, false, true, true);
+		bool bSuccess = false;
+		if (g_settings.writeBinary)
+		{
+			bSuccess = m_pTinyGTLF->WriteGltfSceneToFile(m_pNewModel, outputFilePath, false, false, true, true);
+		}
+		else
+		{
+			bSuccess = m_pTinyGTLF->WriteGltfSceneToFile(m_pNewModel, outputFilePath);
+		}
         if (bSuccess)
         {
             printf("export gltf success: %s\n", outputFilePath.c_str());

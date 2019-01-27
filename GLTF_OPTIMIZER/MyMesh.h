@@ -21,10 +21,12 @@ struct MyUsedTypes : public UsedTypes<Use<MyVertex>::AsVertexType, Use<MyEdge>::
 class MyVertex : public Vertex< MyUsedTypes,
     vertex::VFAdj,
     vertex::Coord3f,
+	vertex::Color4b,// The color component will be the one to store batchId, stored in little endian
     vertex::Normal3f,
     vertex::Mark,
     vertex::Qualityf,
-    vertex::BitFlags  > {
+    vertex::BitFlags,
+	vertex::Coord3f> {
 public:
     vcg::math::Quadric<double> &Qd() { return q; }
 private:

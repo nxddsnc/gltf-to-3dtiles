@@ -9,6 +9,7 @@
 using namespace tinygltf;
 using namespace std;
 
+GlobalSetting g_settings;
 // arguments:
 // -i Input gltf file path.
 // -o Output directory/
