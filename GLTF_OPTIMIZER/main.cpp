@@ -172,9 +172,6 @@ int main(int argc, char *argv[])
 			mesh->C().W() = batchId[3];
 		}
 	}
-	for (int i = 0; i < myMeshes.size(); ++i)
-	{
-	}
 
     SpatialTree spatialTree = SpatialTree(model, myMeshes);
     spatialTree.Initialize();
