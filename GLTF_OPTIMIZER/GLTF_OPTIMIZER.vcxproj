@@ -160,6 +160,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="globals.h" />
+    <ClInclude Include="GltfUtils.h" />
     <ClInclude Include="LodExporter.h" />
     <ClInclude Include="MergeMesh.h" />
     <ClInclude Include="MyMesh.h" />

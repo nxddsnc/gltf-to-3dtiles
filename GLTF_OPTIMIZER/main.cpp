@@ -5,6 +5,7 @@
 #include "tiny_gltf.h"
 #include "LodExporter.h"
 #include "globals.h"
+#include "GltfUtils.h"
 #define TILE_LEVEL 8
 using namespace tinygltf;
 using namespace std;
@@ -149,6 +150,32 @@ int main(int argc, char *argv[])
 
     /****************************************  step0. Read gltf into vcglib mesh.  ******************************************************/
 
+	/****************************************  step1. Get all mergable meshes  ******************************************************/
+
+
+	for (int i = 0; i < model->nodes[0].children.size(); ++i)
+	{
+		int nodeIdx = model->nodes[0].children[0];
+		Node* node = &(model->nodes[nodeIdx]);
+		std::vector<int> meshIdxs;
+		getNodeMeshIdx(model, node, meshIdxs);
+		for (int j = 0; j < meshIdxs.size(); ++j)
+		{
+			MyMesh* mesh = myMeshes[meshIdxs[j]];
+
+			int nodeId = atoi(node->name.c_str());
+			// Write the batchIds into vertex color component in little endian.
+			unsigned char* batchId = (unsigned char*)&nodeId;
+			mesh->C().X() = batchId[0];
+			mesh->C().Y() = batchId[1];
+			mesh->C().Z() = batchId[2];
+			mesh->C().W() = batchId[3];
+		}
+	}
+	for (int i = 0; i < myMeshes.size(); ++i)
+	{
+	}
+
     SpatialTree spatialTree = SpatialTree(model, myMeshes);
     spatialTree.Initialize();
     TileInfo* tileInfo = spatialTree.GetTilesetInfo();
@@ -165,8 +192,6 @@ int main(int argc, char *argv[])
     {
         printf("export error\n");
     }
-
-    // TODO: Merge draw calls according to material
 
     for (int i = 0; i < myMeshes.size(); ++i)
     {
