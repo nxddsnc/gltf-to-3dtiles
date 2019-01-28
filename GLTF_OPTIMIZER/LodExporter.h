@@ -39,6 +39,7 @@ private:
     TriEdgeCollapseQuadricParameter* m_pParams;
     tinygltf::TinyGLTF* m_pTinyGTLF;
     nlohmann::json m_tilesetJson;
+    nlohmann::json m_batchLegnthsJson;
     std::unordered_map<int, int> m_levelAccumMap; // To Identify the bin name in the same folder.
 };
 

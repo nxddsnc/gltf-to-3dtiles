@@ -27,6 +27,7 @@ LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinyg
 
     m_pTinyGTLF = tinyGLTF;
     m_currentTileLevel = 0;
+    m_batchLegnthsJson = nlohmann::json({});
 }
 
 LodExporter::~LodExporter()
@@ -96,6 +97,10 @@ bool LodExporter::ExportTileset()
     sprintf(filepath, "%s/tileset.json", g_settings.outputPath);
     std::ofstream file(filepath);
     file << tilesetJson;
+
+    sprintf(filepath, "%s/batchLengthes.json", g_settings.outputPath);
+    std::ofstream batchLengthJson(filepath);
+    batchLengthJson << m_batchLegnthsJson;
 
     return true;
 }
@@ -173,11 +178,7 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
 				currentTry++;
 			} while (myMesh->fn > finalSize && currentTry < maxTry);
 
-			if (deciSession.currMetric > geometryError)
-			{
-				// TODO: Look into geometricError.
-				geometryError += deciSession.currMetric;
-			}
+            geometryError += deciSession.currMetric;
 		}
         geometryError /= meshIdxs.size();
 	}
@@ -207,6 +208,7 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     sprintf(contentUri, "%d/%d-%d.b3dm", tileInfo->level, tileInfo->level, fileIdx);
     tileInfo->contentUri = string(contentUri);
     string outputFilePath = getOutputFilePath(tileInfo->level, fileIdx);
+
     if (outputFilePath.size() > 0)
     {
 		bool bSuccess = false;
@@ -225,6 +227,13 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
         else
         {
             printf("gltf write error\n");
+        }
+
+        if (g_settings.writeBinary)
+        {
+            char key[1024];
+            sprintf(key, "%d-%d.glb", tileInfo->level, fileIdx);
+            m_batchLegnthsJson[key] = tileInfo->nodes.size();
         }
     }
     else
