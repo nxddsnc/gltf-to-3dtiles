@@ -11,7 +11,15 @@
 //}
 
 class MyMesh;
-
+class MyVertex;
+enum AccessorType
+{
+    POSITION,
+    NORMAL,
+    UV,
+    INDEX,
+    BATCH_ID
+};
 // If the hash compare goes slow, optimize this function.
 struct material_hash_fn {
     unsigned long operator()(const tinygltf::Material& material) const {
@@ -76,19 +84,40 @@ struct material_equal_fn {
     }
 };
 
-
 class MergeMesh
 {
 public:
-	MergeMesh(tinygltf::Model* model, std::vector<MyMesh*> myMeshes);
+	MergeMesh(tinygltf::Model* model, tinygltf::Model* newModel, std::vector<MyMesh*> myMeshes, std::vector<int> nodesToMerge, std::string bufferName);
 	~MergeMesh();
 
 	void DoMerge();
 private :
+    bool meshComparenFunction(int meshIdx1, int meshIdx2);
+    void addMergedMeshesToNewModel(int materialIdx, std::vector<MyMesh*> meshes);
 
+    void MergeMesh::addPrimitive(tinygltf::Primitive* primitive);
+    int MergeMesh::addAccessor(AccessorType type);
+    int MergeMesh::addBufferView(AccessorType type, size_t& byteOffset);
+    int addBuffer(AccessorType type);
 private:
 	tinygltf::Model* m_pModel;
+    tinygltf::Model* m_pNewModel;
 	std::vector<MyMesh*> m_myMeshes;
-    std::unordered_map<tinygltf::Material, std::vector<tinygltf::Mesh*>, material_hash_fn, material_equal_fn> m_materialMeshMap;
-};
+    std::vector<int> m_nodesToMerge;
+    std::string m_bufferName;
+    std::unordered_map<tinygltf::Material, std::vector<MyMesh*>, material_hash_fn, material_equal_fn> m_materialMeshMap;
 
+    std::unordered_map<MyVertex*, uint32_t> m_vertexUintMap;
+    std::unordered_map<MyVertex*, uint16_t> m_vertexUshortMap;
+    std::vector<unsigned char> m_currentAttributeBuffer;
+    std::vector<unsigned char> m_currentBatchIdBuffer;
+    std::vector<unsigned char> m_currentIndexBuffer;
+    float m_positionMax[3];
+    float m_positionMin[3];
+    int m_currentMeshIdx;
+
+    int m_totalVertex;
+    int m_totalFace;
+
+    std::vector<MyMesh*> m_currentMeshes;
+};
