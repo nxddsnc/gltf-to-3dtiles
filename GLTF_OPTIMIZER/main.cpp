@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
     /****************************************  step0. Read gltf into vcglib mesh.  ******************************************************/
 
-	/****************************************  step1. Get all mergable meshes  ******************************************************/
+	/****************************************  step1. Write batchIds to mesh color component  ******************************************************/
 
 
 	for (int i = 0; i < model->nodes[0].children.size(); ++i)
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
 		int nodeIdx = model->nodes[0].children[0];
 		Node* node = &(model->nodes[nodeIdx]);
 		std::vector<int> meshIdxs;
-		getNodeMeshIdx(model, node, meshIdxs);
+		GetNodeMeshIdx(model, node, meshIdxs);
 		for (int j = 0; j < meshIdxs.size(); ++j)
 		{
 			MyMesh* mesh = myMeshes[meshIdxs[j]];
