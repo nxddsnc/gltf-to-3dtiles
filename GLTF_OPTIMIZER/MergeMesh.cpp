@@ -95,6 +95,11 @@ void MergeMesh::DoMerge()
     Node root;
     root.name = "scene_root";
     m_pNewModel->nodes.push_back(root);
+    Scene scene;
+    scene.name = "scene";
+    scene.nodes.push_back(0);
+    m_pNewModel->scenes.push_back(scene);
+    m_pNewModel->asset.version = "2.0";
     for (it = m_materialMeshMap.begin(); it != m_materialMeshMap.end(); ++it)
     {
         m_pNewModel->materials.push_back(it->first);
@@ -130,8 +135,14 @@ void MergeMesh::addMergedMeshesToNewModel(int materialIdx, std::vector<MyMesh*> 
     for (int i = 0; i < meshes.size(); ++i)
     {
         MyMesh* myMesh = meshes[i];
-        if (m_totalVertex + myMesh->vn > 65535 || i == meshes.size() -1)
+        if (m_totalVertex + myMesh->vn > 65536 || (m_totalVertex + myMesh->vn < 65536 && i == meshes.size() - 1))
         {
+            if (m_totalVertex + myMesh->vn < 65536 && i == meshes.size() - 1)
+            {
+                meshesToMerge.push_back(myMesh);
+                m_totalVertex += myMesh->vn;
+                m_totalFace += myMesh->fn;
+            }
             // add mesh node
             Node node;
             Mesh newMesh;
@@ -150,7 +161,7 @@ void MergeMesh::addMergedMeshesToNewModel(int materialIdx, std::vector<MyMesh*> 
             m_pNewModel->meshes.push_back(newMesh);
             node.mesh = m_pNewModel->meshes.size() - 1;
             m_pNewModel->nodes.push_back(node);
-            m_pNewModel->nodes[0].children.push_back(m_currentMeshIdx);
+            m_pNewModel->nodes[0].children.push_back(m_currentMeshIdx + 1);
 
             m_currentMeshIdx++;
             meshesToMerge.clear();
@@ -206,7 +217,7 @@ int MergeMesh::addAccessor(AccessorType type)
         break;
     case INDEX:
         newAccessor.type = TINYGLTF_TYPE_SCALAR;
-        if (m_totalVertex > 65535)
+        if (m_totalVertex > 65536)
         {
             newAccessor.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
         }
@@ -363,7 +374,7 @@ int MergeMesh::addBuffer(AccessorType type)
                 }
                 for (int i = 0; i < 3; ++i)
                 {
-                    if (m_totalVertex > 65535)
+                    if (m_totalVertex > 65536)
                     {
                         temp = (unsigned char*)&(m_vertexUshortMap.at(it->V(i)));
                         m_currentIndexBuffer.push_back(temp[0]);
@@ -380,7 +391,7 @@ int MergeMesh::addBuffer(AccessorType type)
                 }
             }
         }
-        byteLength = m_totalFace * 3 * (m_totalVertex > 65535? sizeof(uint32_t) : sizeof(uint16_t));
+        byteLength = m_totalFace * 3 * (m_totalVertex > 65536? sizeof(uint32_t) : sizeof(uint16_t));
         break;
     default:
         break;

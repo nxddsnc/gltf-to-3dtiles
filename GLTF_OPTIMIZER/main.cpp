@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 
 	for (int i = 0; i < model->nodes[0].children.size(); ++i)
 	{
-		int nodeIdx = model->nodes[0].children[0];
+		int nodeIdx = model->nodes[0].children[i];
 		Node* node = &(model->nodes[nodeIdx]);
 		std::vector<int> meshIdxs;
 		GetNodeMeshIdx(model, node, meshIdxs);
@@ -165,11 +165,16 @@ int main(int argc, char *argv[])
 
 			int nodeId = atoi(node->name.c_str());
 			// Write the batchIds into vertex color component in little endian.
-			unsigned char* batchId = (unsigned char*)&nodeId;
-			mesh->C().X() = batchId[0];
-			mesh->C().Y() = batchId[1];
-			mesh->C().Z() = batchId[2];
-			mesh->C().W() = batchId[3];
+
+            vector<MyVertex>::iterator it;
+            unsigned char* batchId = (unsigned char*)&nodeId;
+            for (it = mesh->vert.begin(); it != mesh->vert.end(); ++it)
+            {
+                it->C().X() = batchId[0];
+                it->C().Y() = batchId[1];
+                it->C().Z() = batchId[2];
+                it->C().W() = batchId[3];
+            }
 		}
 	}
 

@@ -176,9 +176,10 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
 			if (deciSession.currMetric > geometryError)
 			{
 				// TODO: Look into geometricError.
-				geometryError += deciSession.currMetric / m_myMeshes[meshIdxs[j]]->VertexNumber();
+				geometryError += deciSession.currMetric;
 			}
 		}
+        geometryError /= meshIdxs.size();
 	}
     
     tileInfo->geometryError = geometryError;

@@ -38,18 +38,7 @@ private:
     int m_currentTileLevel;
     TriEdgeCollapseQuadricParameter* m_pParams;
     tinygltf::TinyGLTF* m_pTinyGTLF;
-    MyMesh* m_pCurrentMesh;
-    float m_currentBatchId;
     nlohmann::json m_tilesetJson;
-    std::vector<unsigned char> m_currentAttributeBuffer;
-    std::vector<unsigned char> m_currentBatchIdBuffer;
-    std::vector<unsigned char> m_currentIndexBuffer;
-
-    std::unordered_map<MyVertex*, uint32_t> m_vertexUintMap;
-    std::unordered_map<MyVertex*, uint16_t> m_vertexUshortMap;
-
-    std::unordered_map<int, int> m_levelAccumMap;
-    float m_positionMax[3];
-    float m_positionMin[3];
+    std::unordered_map<int, int> m_levelAccumMap; // To Identify the bin name in the same folder.
 };
 
