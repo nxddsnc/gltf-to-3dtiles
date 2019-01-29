@@ -1,6 +1,5 @@
 #include "MergeMesh.h"
 #include "MyMesh.h"
-#include "GltfUtils.h"
 #include <algorithm>
 using namespace tinygltf;
 using namespace std;
@@ -41,22 +40,31 @@ void MergeMesh::DoMerge()
 	for (int i = 0; i < m_nodesToMerge.size(); ++i)
 	{
 		Node* node = &(m_pModel->nodes[m_nodesToMerge[i]]);
-		std::vector<int> meshIdxs;
-        GetNodeMeshIdx(m_pModel, node, meshIdxs);
+		std::vector<MeshInfo> meshInfos;
+        GetNodeMeshInfos(m_pModel, node, meshInfos);
         
-        for (int j = 0; j < meshIdxs.size(); ++j)
+        for (int j = 0; j < meshInfos.size(); ++j)
         {
-            Mesh* mesh = &(m_pModel->meshes[meshIdxs[j]]);
+            Mesh* mesh = &(m_pModel->meshes[meshInfos[j].meshIdx]);
+
+            if (m_meshMatrixMap.count(m_myMeshes[meshInfos[j].meshIdx]) > 0)
+            {
+                printf("error detected\n");
+            }
+            else if (meshInfos[j].matrix != NULL)
+            {
+                m_meshMatrixMap.insert(make_pair(m_myMeshes[meshInfos[j].meshIdx], *meshInfos[j].matrix));
+            }
             int materialIdx = mesh->primitives[0].material;
             Material material = m_pModel->materials[materialIdx];
             if (m_materialMeshMap.count(material) > 0)
             {
-                m_materialMeshMap.at(material).push_back(m_myMeshes[meshIdxs[j]]);
+                m_materialMeshMap.at(material).push_back(m_myMeshes[meshInfos[j].meshIdx]);
             }
             else
             {
                 std::vector<MyMesh*> myMeshesToMerge;
-                myMeshesToMerge.push_back(m_myMeshes[meshIdxs[j]]);
+                myMeshesToMerge.push_back(m_myMeshes[meshInfos[j].meshIdx]);
                 m_materialMeshMap.insert(make_pair(material, myMeshesToMerge));
             }
         }
@@ -127,17 +135,17 @@ void MergeMesh::DoMerge()
     m_pNewModel->buffers.push_back(buffer);
 }
 
-void MergeMesh::addMergedMeshesToNewModel(int materialIdx, std::vector<MyMesh*> meshes)
+void MergeMesh::addMergedMeshesToNewModel(int materialIdx, std::vector<MyMesh*> myMeshes)
 {
     m_totalVertex = 0;
     m_totalFace = 0;
     std::vector<MyMesh*> meshesToMerge;
-    for (int i = 0; i < meshes.size(); ++i)
+    for (int i = 0; i < myMeshes.size(); ++i)
     {
-        MyMesh* myMesh = meshes[i];
-        if (m_totalVertex + myMesh->vn > 65536 || (m_totalVertex + myMesh->vn < 65536 && i == meshes.size() - 1))
+        MyMesh* myMesh = myMeshes[i];
+        if (m_totalVertex + myMesh->vn > 65536 || (m_totalVertex + myMesh->vn < 65536 && i == myMeshes.size() - 1))
         {
-            if (m_totalVertex + myMesh->vn < 65536 && i == meshes.size() - 1)
+            if (m_totalVertex + myMesh->vn < 65536 && i == myMeshes.size() - 1)
             {
                 meshesToMerge.push_back(myMesh);
                 m_totalVertex += myMesh->vn;
@@ -307,24 +315,43 @@ int MergeMesh::addBuffer(AccessorType type)
         for (int i = 0; i < m_currentMeshes.size(); ++i)
         {
             MyMesh* myMesh = m_currentMeshes[i];
+            Matrix44f matrix;
+            bool hasMatrix = false;
+            if (m_meshMatrixMap.count(myMesh) > 0)
+            {
+                hasMatrix = true;
+                matrix = m_meshMatrixMap.at(myMesh);
+            }
             for (vector<MyVertex>::iterator it = myMesh->vert.begin(); it != myMesh->vert.end(); ++it)
             {
                 if (it->IsD())
                 {
                     continue;
                 }
+
+                Point4f point;
+                point.X() = it->P()[0];
+                point.Y() = it->P()[1];
+                point.Z() = it->P()[2];
+                point.W() = 1.0;
+
+                if (hasMatrix)
+                {
+                    point = matrix * point;
+                }
+
                 for (int i = 0; i < 3; ++i)
                 {
-                    if (m_positionMin[i] > it->P()[i])
+                    if (m_positionMin[i] > point[i])
                     {
-                        m_positionMin[i] = it->P()[i];
+                        m_positionMin[i] = point[i];
                     }
-                    if (m_positionMax[i] < it->P()[i])
+                    if (m_positionMax[i] < point[i])
                     {
-                        m_positionMax[i] = it->P()[i];
+                        m_positionMax[i] = point[i];
                     }
 
-                    temp = (unsigned char*)&(it->P()[i]);
+                    temp = (unsigned char*)&(point[i]);
                     m_currentAttributeBuffer.push_back(temp[0]);
                     m_currentAttributeBuffer.push_back(temp[1]);
                     m_currentAttributeBuffer.push_back(temp[2]);
@@ -341,15 +368,33 @@ int MergeMesh::addBuffer(AccessorType type)
         for (int i = 0; i < m_currentMeshes.size(); ++i)
         {
             MyMesh* myMesh = m_currentMeshes[i];
+            bool hasMatrix = false;
+            Matrix44f matrix;
+            if (m_meshMatrixMap.count(myMesh) > 0)
+            {
+                hasMatrix = true;
+                matrix = m_meshMatrixMap.at(myMesh);
+            }
             for (vector<MyVertex>::iterator it = myMesh->vert.begin(); it != myMesh->vert.end(); ++it)
             {
                 if (it->IsD())
                 {
                     continue;
                 }
+
+                Point3f point;
+                point.X() = it->N()[0];
+                point.Y() = it->N()[1];
+                point.Z() = it->N()[2];
+                if (hasMatrix)
+                {
+                    Matrix33f normalMatrix = Matrix33f(matrix, 3);
+                    normalMatrix = Inverse(normalMatrix);
+                    point = normalMatrix * point;
+                }
                 for (int i = 0; i < 3; ++i)
                 {
-                    temp = (unsigned char*)&(it->N()[i]);
+                    temp = (unsigned char*)&(point[i]);
                     m_currentAttributeBuffer.push_back(temp[0]);
                     m_currentAttributeBuffer.push_back(temp[1]);
                     m_currentAttributeBuffer.push_back(temp[2]);

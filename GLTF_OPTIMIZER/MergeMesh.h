@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <map>
 #include "tiny_gltf.h"
+#include "GltfUtils.h"
 #define MATERIAL_EPS 0.01
 //
 //namespace tinygltf
@@ -120,4 +121,5 @@ private:
     int m_totalFace;
 
     std::vector<MyMesh*> m_currentMeshes;
+    std::unordered_map<MyMesh*, Matrix44f> m_meshMatrixMap;
 };
