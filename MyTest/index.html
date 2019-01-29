@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Cesium Demo</title>
+    <script type="text/javascript" src="../../../ThirdParty/requirejs-2.1.20/require.js"></script>
+    <script type="text/javascript">
+    require.config({
+        baseUrl : '../../../Source',
+        waitSeconds : 60
+    });
+    </script>
+    <style>
+        .cesium-viewer {
+    font-family: sans-serif;
+    font-size: 16px;
+    overflow: hidden;
+    display: block;
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.cesium-viewer-cesiumWidgetContainer {
+    width: 100%;
+    height: 100%;
+}
+
+.cesium-viewer-bottom {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding-right: 5px;
+}
+
+.cesium-viewer .cesium-widget-credits {
+    display: inline;
+    position: static;
+    bottom: auto;
+    left: auto;
+    padding-right: 0;
+    color: #ffffff;
+    font-size: 10px;
+    text-shadow: 0 0 2px #000000;
+}
+
+.cesium-viewer-timelineContainer {
+    position: absolute;
+    bottom: 0;
+    left: 169px;
+    right: 29px;
+    height: 27px;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    font-size: 14px;
+}
+
+.cesium-viewer-animationContainer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 0;
+    width: 169px;
+    height: 112px;
+}
+
+.cesium-viewer-fullscreenContainer {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    padding: 0;
+    width: 29px;
+    height: 29px;
+    overflow: hidden;
+}
+
+.cesium-viewer-vrContainer {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    padding: 0;
+    width: 29px;
+    height: 29px;
+    overflow: hidden;
+}
+
+.cesium-viewer-toolbar {
+    display: block;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
+.cesium-viewer-cesiumInspectorContainer {
+    display: block;
+    position: absolute;
+    top: 50px;
+    right: 10px;
+}
+
+.cesium-viewer-geocoderContainer {
+    position: relative;
+    display: inline-block;
+    margin: 0 3px;
+}
+
+.cesium-viewer-cesium3DTilesInspectorContainer {
+    display: block;
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    max-height: calc(100% - 120px);
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.cesium-widget {
+    position: relative;
+}
+
+.cesium-widget, .cesium-widget canvas {
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+}
+
+.cesium-widget-credits {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    color: #fff;
+    font-size: 10px;
+    text-shadow: 0px 0px 2px #000000;
+    padding-right: 5px;
+}
+
+.cesium-widget-credits a,
+.cesium-widget-credits a:visited {
+    color: #fff;
+}
+
+.cesium-widget-errorPanel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 99999;
+}
+
+.cesium-widget-errorPanel:before {
+    display: inline-block;
+    vertical-align: middle;
+    height: 100%;
+    content: "";
+}
+
+.cesium-widget-errorPanel-content {
+    width: 75%;
+    display: inline-block;
+    text-align: left;
+    vertical-align: middle;
+    border: 1px solid #526F82;
+    border-radius: 7px;
+    background-color: black;
+    color: white;
+    font-size: 10pt;
+    padding: 1em;
+}
+
+.cesium-widget-errorPanel-header {
+    font-size: 120%;
+    color: #fe4;
+}
+
+.cesium-widget-errorPanel-scroll {
+    overflow: auto;
+    font-family: monospace;
+    white-space: pre-wrap;
+    padding: 0;
+    margin: 10px 0;
+}
+
+.cesium-widget-errorPanel-buttonPanel {
+    text-align: center;
+}
+.cesium-cesiumInspector {
+    border-radius: 5px;
+    transition: width ease-in-out 0.25s;
+    background: rgba(48, 51, 54, 0.8);
+    border: 1px solid #444;
+    color: #edffff;
+    display: inline-block;
+    position: relative;
+    padding: 4px 12px;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    overflow: hidden;
+}
+
+.cesium-cesiumInspector-button {
+    text-align: center;
+    font-size: 11pt;
+}
+
+.cesium-cesiumInspector-visible .cesium-cesiumInspector-button {
+    border-bottom: 1px solid #aaa;
+    padding-bottom: 3px;
+}
+
+.cesium-cesiumInspector input:enabled, .cesium-cesiumInspector-button {
+    cursor: pointer;
+}
+
+.cesium-cesiumInspector-visible {
+    width: 185px;
+    height: auto;
+}
+
+.cesium-cesiumInspector-hidden {
+    width: 122px;
+    height: 17px;
+}
+
+.cesium-cesiumInspector-sectionContent {
+    max-height: 500px;
+}
+
+.cesium-cesiumInspector-section-collapsed .cesium-cesiumInspector-sectionContent {
+    max-height: 0;
+    padding: 0 !important;
+    overflow: hidden;
+}
+
+.cesium-cesiumInspector-dropDown {
+    margin: 5px 0;
+    font-family: sans-serif;
+    font-size: 10pt;
+    width: 185px;
+}
+
+.cesium-cesiumInspector-frustumStatistics {
+    padding-left: 10px;
+    padding: 5px;
+    background-color: rgba(80, 80, 80, 0.75);
+}
+
+.cesium-cesiumInspector-pickButton {
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid #444;
+    color: #edffff;
+    border-radius: 5px;
+    padding: 3px 7px;
+    cursor: pointer;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    margin: 0 auto;
+}
+
+.cesium-cesiumInspector-pickButton:focus {
+    outline: none;
+}
+
+.cesium-cesiumInspector-pickButton:active, .cesium-cesiumInspector-pickButtonHighlight {
+    color: #000; /* For text buttons */
+    background: #adf;
+    border-color: #fff;
+    box-shadow: 0 0 8px #fff;
+}
+
+.cesium-cesiumInspector-center {
+    text-align: center;
+}
+
+.cesium-cesiumInspector-sectionHeader {
+    font-weight: bold;
+    font-size: 10pt;
+    margin: 0;
+    cursor: pointer;
+}
+
+.cesium-cesiumInspector-pickSection {
+    border: 1px solid #aaa;
+    border-radius: 5px;
+    padding: 3px;
+    margin-bottom: 5px;
+}
+
+.cesium-cesiumInspector-sectionContent {
+    margin-bottom: 10px;
+    transition: max-height 0.25s;
+}
+
+.cesium-cesiumInspector-tileText {
+    padding-bottom: 10px;
+    border-bottom: 1px solid #aaa;
+}
+
+.cesium-cesiumInspector-relativeText {
+    padding-top: 10px;
+}
+
+.cesium-cesiumInspector-sectionHeader::before {
+    margin-right: 5px;
+    content: '-';
+    width: 1ch;
+    display: inline-block;
+}
+
+.cesium-cesiumInspector-section-collapsed .cesium-cesiumInspector-sectionHeader::before {
+    content: '+';
+}
+
+ul.cesium-cesiumInspector-statistics {
+    margin: 0;
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+ul.cesium-cesiumInspector-statistics + ul.cesium-cesiumInspector-statistics {
+    border-top: 1px solid #aaa;
+}
+
+.cesium-cesiumInspector-slider {
+    margin-top: 5px;
+}
+
+.cesium-cesiumInspector-slider input[type=number] {
+    text-align: left;
+    background-color: #222;
+    outline: none;
+    border: 1px solid #444;
+    color: #edffff;
+    width: 100px;
+    border-radius: 3px;
+    padding: 1px;
+    margin-left: 10px;
+    cursor: auto;
+}
+
+.cesium-cesiumInspector-slider input[type=number]::-webkit-outer-spin-button,
+.cesium-cesiumInspector-slider input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.cesium-cesiumInspector-slider input[type=range] {
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+.cesium-cesiumInspector-hide .cesium-cesiumInspector-styleEditor {
+    display: none;
+}
+
+.cesium-cesiumInspector-styleEditor {
+    padding: 10px;
+    border-radius: 5px;
+    background: rgba(48, 51, 54, 0.8);
+    border: 1px solid #444;
+}
+
+.cesium-cesiumInspector-styleEditor textarea {
+    width: 100%;
+    height: 300px;
+    background: transparent;
+    color: #edffff;
+    border: none;
+    padding: 0;
+    white-space: pre;
+    overflow-wrap: normal;
+    overflow-x: auto;
+}
+
+.cesium-3DTilesInspector {
+    width: 300px;
+    pointer-events: all;
+}
+
+.cesium-3DTilesInspector-statistics {
+    font-size: 11px;
+}
+
+.cesium-3DTilesInspector div, .cesium-3DTilesInspector input[type=range] {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.cesium-cesiumInspector-error {
+    color: #ff9e9e;
+    overflow: auto;
+}
+
+.cesium-3DTilesInspector .cesium-cesiumInspector-section {
+    margin-top: 3px;
+}
+
+.cesium-3DTilesInspector .cesium-cesiumInspector-sectionHeader + .cesium-cesiumInspector-show {
+    border-top: 1px solid white;
+}
+
+input.cesium-cesiumInspector-url {
+    overflow: hidden;
+    white-space: nowrap;
+    overflow-x: scroll;
+    background-color: transparent;
+    color: white;
+    outline: none;
+    border: none;
+    height: 1em;
+    width: 100%;
+}
+
+.cesium-cesiumInspector .field-group {
+    display: table;
+}
+
+.cesium-cesiumInspector .field-group > label {
+    display: table-cell;
+    font-weight: bold;
+}
+
+.cesium-cesiumInspector .field-group > .field {
+    display: table-cell;
+    width: 100%;
+}
+.cesium-performance-watchdog-message-area {
+    position: relative;
+    background-color: yellow;
+    color: black;
+    padding: 10px;
+}
+
+.cesium-performance-watchdog-message {
+    margin-right: 30px;
+}
+
+.cesium-performance-watchdog-message-dismiss {
+    position: absolute;
+    right: 0;
+    margin: 0 10px 0 0;
+}
+
+    </style>
+</head>
+<div id="cesiumContainer" class="fullSize" style="width: 1920px; height: 900px;"></div>
+<div id="dummy"></div>
+<!-- <div style="width: 300px; height:900px; position: absolute; right: 0;top: 0; z-index: 100; background-color: RGBA(255, 255, 255, 0.3);" id="inspector"></div> -->
+<script src="index.js"></script>
+</body>
+</html>
