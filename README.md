@@ -30,6 +30,6 @@ After conversion, we can use 3dtiles-tools to convert glb to b3dm so that it can
 
 # Notice
 ##### It is just a test project yet and the gltf file format is limited to the structure as it was in https://github.com/nxddsnc/GLTF-Optimizer/tree/master/data with no textures supported yet. And currently I am working on branch dev#mergeMesh.
-##### If you have any other question, please contact me(fanqileiOGL@163.com).
+##### If you have any questions, please contact me(fanqileiOGL@163.com).
 
 
