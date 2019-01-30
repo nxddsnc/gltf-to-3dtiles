@@ -329,8 +329,8 @@ int MergeMesh::addMesh(int materialIdx, MyMesh* myMesh)
         {
             continue;
         }
+        m_totalFace++;
     }
-    m_totalFace++;
 
     addPrimitive(&newPrimitive);
     newPrimitive.mode = 4;
