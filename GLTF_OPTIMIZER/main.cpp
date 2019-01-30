@@ -6,6 +6,7 @@
 #include "LodExporter.h"
 #include "globals.h"
 #include "GltfUtils.h"
+#include <ctime>
 #define TILE_LEVEL 8
 using namespace tinygltf;
 using namespace std;
@@ -25,6 +26,7 @@ int main(int argc, char *argv[])
 	g_settings.maxTreeDepth = MAX_DEPTH;
 	g_settings.tileLevel = TILE_LEVEL;
 	g_settings.writeBinary = false;
+    g_settings.printLog = true;
     for (int i = 1; i < argc; ++i)
 	{
         if (std::strcmp(argv[i], "-i") == 0)
@@ -80,39 +82,48 @@ int main(int argc, char *argv[])
     std::string warn;
     bool ret = tinyGltf->LoadASCIIFromFile(model, &err, &warn, g_settings.inputPath);
 
+    if (g_settings.printLog)
+    {
+        std::printf("************************************************\n");
+        std::printf("mesh number: %d\n", model->meshes.size());
+        std::printf("material number: %d\n", model->materials.size());
+        std::printf("************************************************\n");
+    }
+
     for (int i = 0; i < model->meshes.size(); ++i)
     {
         MyMesh* myMesh = new MyMesh();
         myMeshes.push_back(myMesh);
 
-        Mesh mesh = model->meshes[i];
-        int positionAccessorIdx = mesh.primitives[0].attributes.at("POSITION");
-        int normalAccessorIdx = mesh.primitives[0].attributes.at("NORMAL");
-        int indicesAccessorIdx = mesh.primitives[0].indices;
-        Accessor positionAccessor = model->accessors[positionAccessorIdx];
-        Accessor normalAccessor = model->accessors[normalAccessorIdx];
-        Accessor indicesAccessor = model->accessors[indicesAccessorIdx];
-        BufferView positionBufferView = model->bufferViews[positionAccessor.bufferView];
-        BufferView normalBufferView = model->bufferViews[normalAccessor.bufferView];
-        BufferView indicesBufferView = model->bufferViews[indicesAccessor.bufferView];
-        std::vector<unsigned char> positionBuffer = model->buffers[positionBufferView.buffer].data;
-        std::vector<unsigned char> normalBuffer = model->buffers[normalBufferView.buffer].data;
-        std::vector<unsigned char> indicesBuffer = model->buffers[indicesBufferView.buffer].data;
+        Mesh* mesh = &(model->meshes[i]);
+        int positionAccessorIdx = mesh->primitives[0].attributes.at("POSITION");
+        int normalAccessorIdx = mesh->primitives[0].attributes.at("NORMAL");
+        int indicesAccessorIdx = mesh->primitives[0].indices;
+        Accessor* positionAccessor = &(model->accessors[positionAccessorIdx]);
+        Accessor* normalAccessor = &(model->accessors[normalAccessorIdx]);
+        Accessor* indicesAccessor = &(model->accessors[indicesAccessorIdx]);
+        BufferView* positionBufferView = &(model->bufferViews[positionAccessor->bufferView]);
+        BufferView* normalBufferView = &(model->bufferViews[normalAccessor->bufferView]);
+        BufferView* indicesBufferView = &(model->bufferViews[indicesAccessor->bufferView]);
+        std::vector<unsigned char>& positionBuffer = model->buffers[positionBufferView->buffer].data;
+        std::vector<unsigned char>& normalBuffer = model->buffers[normalBufferView->buffer].data;
+        std::vector<unsigned char>& indicesBuffer = model->buffers[indicesBufferView->buffer].data;
         
-        float* positions = (float *)(model->buffers[positionBufferView.buffer].data.data() +
-            positionBufferView.byteOffset +
-            positionAccessor.byteOffset);
-        float* normals = (float*)(model->buffers[normalBufferView.buffer].data.data() +
-            normalBufferView.byteOffset +
-            normalAccessor.byteOffset);
-        uint16_t* indices = (uint16_t*)(model->buffers[indicesBufferView.buffer].data.data() +
-            indicesBufferView.byteOffset +
-            indicesAccessor.byteOffset);
+        float* positions = (float *)(model->buffers[positionBufferView->buffer].data.data() +
+            positionBufferView->byteOffset +
+            positionAccessor->byteOffset);
+        float* normals = (float*)(model->buffers[normalBufferView->buffer].data.data() +
+            normalBufferView->byteOffset +
+            normalAccessor->byteOffset);
+        uint16_t* indices = (uint16_t*)(model->buffers[indicesBufferView->buffer].data.data() +
+            indicesBufferView->byteOffset +
+            indicesAccessor->byteOffset);
 
         std::vector<VertexPointer> index;
-        VertexIterator vi = Allocator<MyMesh>::AddVertices(*myMesh, positionAccessor.count);
+        VertexIterator vi = Allocator<MyMesh>::AddVertices(*myMesh, positionAccessor->count);
         
-        for (int j = 0; j < positionAccessor.count; ++j)
+
+        for (int j = 0; j < positionAccessor->count; ++j)
         {
             (*vi).P()[0] = positions[j * 3 + 0];
             (*vi).P()[1] = positions[j * 3 + 1];
@@ -127,12 +138,12 @@ int main(int argc, char *argv[])
             ++vi;
         }
 
-        index.resize(positionAccessor.count);
+        index.resize(positionAccessor->count);
         vi = myMesh->vert.begin();
-        for (int j = 0; j < positionAccessor.count; ++j, ++vi)
+        for (int j = 0; j < positionAccessor->count; ++j, ++vi)
             index[j] = &*vi;
 
-        int faceNum = indicesAccessor.count / 3;
+        int faceNum = indicesAccessor->count / 3;
         FaceIterator fi = Allocator<MyMesh>::AddFaces(*myMesh, faceNum);
 
         for (int j = 0; j < faceNum; ++j)
@@ -148,6 +159,7 @@ int main(int argc, char *argv[])
         //vcg::tri::io::ExporterPLY<MyMesh>::Save(myMesh, testOutputPath);
     }
 
+    std::printf("My Meshes created\n");
     /****************************************  step0. Read gltf into vcglib mesh.  ******************************************************/
 
 	/****************************************  step1. Write batchIds to mesh color component  ******************************************************/
@@ -178,10 +190,16 @@ int main(int argc, char *argv[])
 		}
 	}
 
+    std::printf("batch id written\n");
+
     SpatialTree spatialTree = SpatialTree(model, myMeshes);
     spatialTree.Initialize();
+
+    std::printf("sptial tree created\n");
+
     TileInfo* tileInfo = spatialTree.GetTilesetInfo();
 
+    std::printf("tileset info generated\n");
     LodExporter lodExporter = LodExporter(model, myMeshes, tinyGltf);
     lodExporter.SetTileInfo(tileInfo);
     bool success = lodExporter.ExportTileset();

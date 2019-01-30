@@ -6,6 +6,7 @@ struct GlobalSetting
 	int maxTreeDepth;
 	int tileLevel;
 	bool writeBinary;
+    bool printLog;
 };
 
 extern GlobalSetting g_settings;
