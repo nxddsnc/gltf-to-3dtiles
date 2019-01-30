@@ -76,7 +76,7 @@ void MergeMesh::ConstructNewModel()
     m_pNewModel->scenes.push_back(scene);
     m_pNewModel->asset.version = "2.0";
     std::unordered_map<int, std::vector<MyMesh*>>::iterator it;
-    int index;
+    int index = 0;
     for (it = m_materialNewMeshesMap.begin(); it != m_materialNewMeshesMap.end(); ++it)
     {
         Material material = m_pModel->materials[it->first];
@@ -270,6 +270,7 @@ void MergeMesh::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes)
             (*fi).V(0) = vertexMap.at(myMeshes[i]->face[j].V(0));
             (*fi).V(1) = vertexMap.at(myMeshes[i]->face[j].V(1));
             (*fi).V(2) = vertexMap.at(myMeshes[i]->face[j].V(2));
+            ++fi;
         }
     }
 }

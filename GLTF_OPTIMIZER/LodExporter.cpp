@@ -148,8 +148,8 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     Model* pNewModel = new Model;
     MergeMesh mergeMesh = MergeMesh(m_pModel, pNewModel, m_myMeshes, tileInfo->nodes, bufferName);
     mergeMesh.DoMerge();
-    mergeMesh.DoDecimation(0.1);
-
+    mergeMesh.DoDecimation(pow(0.5, g_settings.tileLevel - tileInfo->level));
+    mergeMesh.ConstructNewModel();
     // output
     char contentUri[1024];
     sprintf(contentUri, "%d/%d-%d.b3dm", tileInfo->level, tileInfo->level, fileIdx);
