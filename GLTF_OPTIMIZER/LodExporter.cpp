@@ -137,6 +137,7 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     if (m_levelAccumMap.count(tileInfo->level) > 0)
     {
         fileIdx = m_levelAccumMap.at(tileInfo->level);
+        fileIdx++;
         m_levelAccumMap.at(tileInfo->level)++;
     }
     else
