@@ -92,9 +92,10 @@ public:
 	~MergeMesh();
 
 	void DoMerge();
+    void ConstructNewModel();
 private :
-    bool meshComparenFunction(int meshIdx1, int meshIdx2);
-    void addMergedMeshesToNewModel(int materialIdx, std::vector<MyMesh*> meshes);
+    void mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> meshes);
+    void MergeMesh::createMyMesh(std::vector<MyMesh*> myMeshes);
 
     void MergeMesh::addPrimitive(tinygltf::Primitive* primitive);
     int MergeMesh::addAccessor(AccessorType type);
@@ -104,6 +105,7 @@ private:
 	tinygltf::Model* m_pModel;
     tinygltf::Model* m_pNewModel;
 	std::vector<MyMesh*> m_myMeshes;
+    std::vector<MyMesh*> m_myNewMeshes;
     std::vector<int> m_nodesToMerge;
     std::string m_bufferName;
     std::unordered_map<tinygltf::Material, std::vector<MyMesh*>, material_hash_fn, material_equal_fn> m_materialMeshMap;

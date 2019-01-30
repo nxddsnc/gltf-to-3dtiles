@@ -12,20 +12,21 @@ MergeMesh::MergeMesh(tinygltf::Model* model, tinygltf::Model* newModel, std::vec
 	m_myMeshes = myMeshes;
     m_nodesToMerge = nodesToMerge;
     m_currentMeshIdx = 0;
+
+    m_pParams = new TriEdgeCollapseQuadricParameter();
+    m_pParams->QualityThr = .3;
+    m_pParams->PreserveBoundary = false; // Perserve mesh boundary
+    m_pParams->PreserveTopology = false;
 }
 
 MergeMesh::~MergeMesh()
 {
-
+    for (int i = 0; i < m_myNewMeshes.size(); ++i)
+    {
+        delete m_myNewMeshes[i];
+    }
+    delete m_pParams;
 }
-
-bool MergeMesh::meshComparenFunction(int meshIdx1, int meshIdx2)
-{
-    MyMesh* mesh1 = m_myMeshes[meshIdx1];
-    MyMesh* mesh2 = m_myMeshes[meshIdx2];
-    return mesh1->vn < mesh2->vn;
-}
-
 
 struct mesh_compare_fn
 {
@@ -35,43 +36,9 @@ struct mesh_compare_fn
     }
 };
 
-void MergeMesh::DoMerge()
+void MergeMesh::ConstructNewModel()
 {
-	for (int i = 0; i < m_nodesToMerge.size(); ++i)
-	{
-		Node* node = &(m_pModel->nodes[m_nodesToMerge[i]]);
-		std::vector<MeshInfo> meshInfos;
-        GetNodeMeshInfos(m_pModel, node, meshInfos);
-        
-        for (int j = 0; j < meshInfos.size(); ++j)
-        {
-            Mesh* mesh = &(m_pModel->meshes[meshInfos[j].meshIdx]);
-
-            if (m_meshMatrixMap.count(m_myMeshes[meshInfos[j].meshIdx]) > 0)
-            {
-                printf("error detected\n");
-            }
-            else if (meshInfos[j].matrix != NULL)
-            {
-                m_meshMatrixMap.insert(make_pair(m_myMeshes[meshInfos[j].meshIdx], *meshInfos[j].matrix));
-            }
-            int materialIdx = mesh->primitives[0].material;
-            Material material = m_pModel->materials[materialIdx];
-            if (m_materialMeshMap.count(material) > 0)
-            {
-                m_materialMeshMap.at(material).push_back(m_myMeshes[meshInfos[j].meshIdx]);
-            }
-            else
-            {
-                std::vector<MyMesh*> myMeshesToMerge;
-                myMeshesToMerge.push_back(m_myMeshes[meshInfos[j].meshIdx]);
-                m_materialMeshMap.insert(make_pair(material, myMeshesToMerge));
-            }
-        }
-	}
-
     // Add nodes according to material.
-
     {
         // FIXME: Support more than 3 bufferviews.
         BufferView arraybufferView;
@@ -116,7 +83,7 @@ void MergeMesh::DoMerge()
 
         std::sort(myMeshes.begin(), myMeshes.end(), mesh_compare_fn());
 
-        addMergedMeshesToNewModel(m_pNewModel->materials.size() - 1, myMeshes);
+        mergeSameMaterialMeshes(m_pNewModel->materials.size() - 1, myMeshes);
     }
 
     {
@@ -135,7 +102,126 @@ void MergeMesh::DoMerge()
     m_pNewModel->buffers.push_back(buffer);
 }
 
-void MergeMesh::addMergedMeshesToNewModel(int materialIdx, std::vector<MyMesh*> myMeshes)
+void MergeMesh::DoMerge()
+{
+	for (int i = 0; i < m_nodesToMerge.size(); ++i)
+	{
+		Node* node = &(m_pModel->nodes[m_nodesToMerge[i]]);
+		std::vector<MeshInfo> meshInfos;
+        GetNodeMeshInfos(m_pModel, node, meshInfos);
+        
+        for (int j = 0; j < meshInfos.size(); ++j)
+        {
+            Mesh* mesh = &(m_pModel->meshes[meshInfos[j].meshIdx]);
+
+            if (m_meshMatrixMap.count(m_myMeshes[meshInfos[j].meshIdx]) > 0)
+            {
+                printf("error detected\n");
+            }
+            else if (meshInfos[j].matrix != NULL)
+            {
+                m_meshMatrixMap.insert(make_pair(m_myMeshes[meshInfos[j].meshIdx], *meshInfos[j].matrix));
+            }
+            int materialIdx = mesh->primitives[0].material;
+            Material material = m_pModel->materials[materialIdx];
+            if (m_materialMeshMap.count(material) > 0)
+            {
+                m_materialMeshMap.at(material).push_back(m_myMeshes[meshInfos[j].meshIdx]);
+            }
+            else
+            {
+                std::vector<MyMesh*> myMeshesToMerge;
+                myMeshesToMerge.push_back(m_myMeshes[meshInfos[j].meshIdx]);
+                m_materialMeshMap.insert(make_pair(material, myMeshesToMerge));
+            }
+        }
+	}
+
+    std::unordered_map<tinygltf::Material, std::vector<MyMesh*>, material_hash_fn, material_equal_fn>::iterator it;
+    for (it = m_materialMeshMap.begin(); it != m_materialMeshMap.end(); ++it)
+    {
+        m_pNewModel->materials.push_back(it->first);
+
+        std::vector<MyMesh*> myMeshes = it->second;
+
+        std::sort(myMeshes.begin(), myMeshes.end(), mesh_compare_fn());
+
+        mergeSameMaterialMeshes(m_pNewModel->materials.size() - 1, myMeshes);
+    }
+}
+
+void MergeMesh::createMyMesh(std::vector<MyMesh*> myMeshes)
+{
+    MyMesh* newMesh = new MyMesh();
+    m_myNewMeshes.push_back(newMesh);
+    int vertexCount;
+    int faceCount;
+    std::unordered_map<VertexPointer, VertexPointer> vertexMap;
+
+    for (int i = 0; i < myMeshes.size(); ++i)
+    {
+        vertexMap.clear();
+        VertexIterator vi = Allocator<MyMesh>::AddVertices(*newMesh, myMeshes[i]->vn);
+        vertexCount = myMeshes[i]->vn;
+        faceCount = myMeshes[i]->fn;
+
+        if (m_meshMatrixMap.count(myMeshes[i]) > 0)
+        {
+            Matrix44f* matrix = &(m_meshMatrixMap.at(myMeshes[i]));
+            Matrix33f normalMatrix = Matrix33f(*matrix, 3);
+            normalMatrix = Inverse(normalMatrix);
+            for (int j = 0; j < vertexCount; ++j)
+            {
+                Point4f position(myMeshes[i]->vert[j].P()[0], myMeshes[i]->vert[j].P()[1], myMeshes[i]->vert[j].P()[2], 1.0);
+                Point3f normal(myMeshes[i]->vert[j].N()[0], myMeshes[i]->vert[j].N()[1], myMeshes[i]->vert[j].N()[2]);
+                position = *matrix * position;
+                normal = normalMatrix * normal;
+                (*vi).P()[0] = position[0];
+                (*vi).P()[1] = position[1];
+                (*vi).P()[2] = position[2];
+
+                (*vi).N()[0] = normal[0];
+                (*vi).N()[1] = normal[1];
+                (*vi).N()[2] = normal[2];
+
+                //(*vi).T().P().X() = va.u;
+                //(*vi).T().P().Y() = va.v;
+
+                vertexMap.insert(make_pair(&(myMeshes[i]->vert[j]), &*vi));
+                ++vi;
+            }
+        }
+        else
+        {
+            for (int j = 0; j < vertexCount; ++j)
+            {
+                (*vi).P()[0] = myMeshes[i]->vert[j].P()[0];
+                (*vi).P()[1] = myMeshes[i]->vert[j].P()[1];
+                (*vi).P()[2] = myMeshes[i]->vert[j].P()[2];
+
+                (*vi).N()[0] = myMeshes[i]->vert[j].N()[0];
+                (*vi).N()[1] = myMeshes[i]->vert[j].N()[1];
+                (*vi).N()[2] = myMeshes[i]->vert[j].N()[2];
+
+                //(*vi).T().P().X() = va.u;
+                //(*vi).T().P().Y() = va.v;
+
+                vertexMap.insert(make_pair(&(myMeshes[i]->vert[j]), &*vi));
+                ++vi;
+            }
+        }
+
+        FaceIterator fi = Allocator<MyMesh>::AddFaces(*newMesh, faceCount);
+        for (int j = 0; j < faceCount; ++j)
+        {
+            (*fi).V(0) = vertexMap.at(myMeshes[i]->face[j].V(0));
+            (*fi).V(1) = vertexMap.at(myMeshes[i]->face[j].V(1));
+            (*fi).V(2) = vertexMap.at(myMeshes[i]->face[j].V(2));
+        }
+    }
+}
+
+void MergeMesh::mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> myMeshes)
 {
     m_totalVertex = 0;
     m_totalFace = 0;
@@ -151,30 +237,8 @@ void MergeMesh::addMergedMeshesToNewModel(int materialIdx, std::vector<MyMesh*> 
                 m_totalVertex += myMesh->vn;
                 m_totalFace += myMesh->fn;
             }
-            // add mesh node
-            Node node;
-            Mesh newMesh;
-            char meshName[1024];
-            sprintf(meshName, "%d", m_currentMeshIdx);
-            node.name = string(meshName);
-            newMesh.name = string(meshName);
-            
-            Primitive newPrimitive;
-            newPrimitive.mode = 4; // currently only support triangle mesh.
-            newPrimitive.material = materialIdx;
-            m_currentMeshes = meshesToMerge;
-            addPrimitive(&newPrimitive);
-            newMesh.primitives.push_back(newPrimitive);
 
-            m_pNewModel->meshes.push_back(newMesh);
-            node.mesh = m_pNewModel->meshes.size() - 1;
-            m_pNewModel->nodes.push_back(node);
-            m_pNewModel->nodes[0].children.push_back(m_currentMeshIdx + 1);
-
-            m_currentMeshIdx++;
-            meshesToMerge.clear();
-            m_totalVertex = 0;
-            m_totalFace = 0;
+            createMyMesh(meshesToMerge);
         }
 
         meshesToMerge.push_back(myMesh);

@@ -152,40 +152,6 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     // FIXME: Cache it if there's performance  issue.
     getMeshIdxs(tileInfo->nodes, meshIdxs);
 
-    // decimation
-    float geometryError = 0;
-	if (m_currentTileLevel != g_settings.tileLevel)
-	{
-		for (int j = 0; j < meshIdxs.size(); ++j)
-		{
-			MyMesh* myMesh = m_myMeshes[meshIdxs[j]];
-			if (myMesh->fn <= MIN_FACE_NUM)
-			{
-				continue;
-			}
-			// decimator initialization
-			vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
-			deciSession.Init<MyTriEdgeCollapse>();
-			uint32_t finalSize = myMesh->fn * 0.5;
-			deciSession.SetTargetSimplices(finalSize); // Target face number;
-			deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
-			deciSession.SetTargetOperations(100000);
-			int maxTry = 100;
-			int currentTry = 0;
-			do
-			{
-				deciSession.DoOptimization();
-				currentTry++;
-			} while (myMesh->fn > finalSize && currentTry < maxTry);
-
-            geometryError += deciSession.currMetric;
-		}
-        geometryError /= meshIdxs.size();
-	}
-    
-    tileInfo->geometryError = geometryError;
-
-
     char bufferName[1024];
     int fileIdx = 0;
     if (m_levelAccumMap.count(tileInfo->level) > 0)
@@ -202,6 +168,40 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     Model* pNewModel = new Model;
     MergeMesh mergeMesh = MergeMesh(m_pModel, pNewModel, m_myMeshes, tileInfo->nodes, bufferName);
     mergeMesh.DoMerge();
+
+    // decimation
+    float geometryError = 0;
+    if (m_currentTileLevel != g_settings.tileLevel)
+    {
+        for (int j = 0; j < meshIdxs.size(); ++j)
+        {
+            MyMesh* myMesh = m_myMeshes[meshIdxs[j]];
+            if (myMesh->fn <= MIN_FACE_NUM)
+            {
+                continue;
+            }
+            // decimator initialization
+            vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
+            deciSession.Init<MyTriEdgeCollapse>();
+            uint32_t finalSize = myMesh->fn * 0.5;
+            deciSession.SetTargetSimplices(finalSize); // Target face number;
+            deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
+            deciSession.SetTargetOperations(100000);
+            int maxTry = 100;
+            int currentTry = 0;
+            do
+            {
+                deciSession.DoOptimization();
+                currentTry++;
+            } while (myMesh->fn > finalSize && currentTry < maxTry);
+
+            geometryError += deciSession.currMetric;
+        }
+        geometryError /= meshIdxs.size();
+    }
+
+    tileInfo->geometryError = geometryError;
+
     
     // output
     char contentUri[1024];
