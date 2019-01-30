@@ -88,7 +88,7 @@ void MergeMesh::ConstructNewModel()
             node.name = std::to_string(index);
             node.mesh = addMesh(it->first, myMeshes[i]);
             m_pNewModel->nodes.push_back(node);
-            root.children.push_back(m_pNewModel->nodes.size() - 1);
+            m_pNewModel->nodes[0].children.push_back(m_pNewModel->nodes.size() - 1);
             index++;
         }
     }
