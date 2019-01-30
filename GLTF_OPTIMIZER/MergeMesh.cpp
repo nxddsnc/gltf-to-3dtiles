@@ -79,9 +79,6 @@ void MergeMesh::ConstructNewModel()
     int index = 0;
     for (it = m_materialNewMeshesMap.begin(); it != m_materialNewMeshesMap.end(); ++it)
     {
-        Material material = m_pModel->materials[it->first];
-        m_pNewModel->materials.push_back(material);
-
         std::vector<MyMesh*> myMeshes = it->second;
 
         for (int i = 0; i < myMeshes.size(); ++i)
@@ -89,7 +86,7 @@ void MergeMesh::ConstructNewModel()
             Node node;
 
             node.name = std::to_string(index);
-            node.mesh = addMesh(m_pNewModel->materials.size() - 1, myMeshes[i]);
+            node.mesh = addMesh(it->first, myMeshes[i]);
             m_pNewModel->nodes.push_back(node);
             root.children.push_back(m_pNewModel->nodes.size() - 1);
             index++;
@@ -419,7 +416,7 @@ int MergeMesh::addBufferView(AccessorType type, size_t& byteOffset)
 int MergeMesh::addBuffer(AccessorType type)
 {
     int byteLength = 0;
-    int index = 0;
+    uint32_t index = 0;
     unsigned char* temp = NULL;
     MyMesh* myMesh = m_currentMesh;
     switch (type)
@@ -466,8 +463,14 @@ int MergeMesh::addBuffer(AccessorType type)
                 m_currentAttributeBuffer.push_back(temp[2]);
                 m_currentAttributeBuffer.push_back(temp[3]);
             }
-
-            m_vertexUshortMap.insert(make_pair(&(*it), index));
+            if (m_totalVertex > 65536)
+            {
+                m_vertexUintMap.insert(make_pair(&(*it), index));
+            }
+            else
+            {
+                m_vertexUshortMap.insert(make_pair(&(*it), index));
+            }
             index++;
         }
         byteLength = m_totalVertex * 3 * sizeof(float);
@@ -505,7 +508,7 @@ int MergeMesh::addBuffer(AccessorType type)
             {
                 if (m_totalVertex > 65536)
                 {
-                    temp = (unsigned char*)&(m_vertexUshortMap.at(it->V(i)));
+                    temp = (unsigned char*)&(m_vertexUintMap.at(it->V(i)));
                     m_currentIndexBuffer.push_back(temp[0]);
                     m_currentIndexBuffer.push_back(temp[1]);
                     m_currentIndexBuffer.push_back(temp[2]);
