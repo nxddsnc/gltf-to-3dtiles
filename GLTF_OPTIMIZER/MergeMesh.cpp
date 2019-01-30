@@ -234,6 +234,10 @@ void MergeMesh::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes)
                 (*vi).N()[1] = normal[1];
                 (*vi).N()[2] = normal[2];
 
+                (*vi).C()[0] = myMeshes[i]->vert[j].C()[0];
+                (*vi).C()[1] = myMeshes[i]->vert[j].C()[1];
+                (*vi).C()[2] = myMeshes[i]->vert[j].C()[2];
+                (*vi).C()[3] = myMeshes[i]->vert[j].C()[3];
                 //(*vi).T().P().X() = va.u;
                 //(*vi).T().P().Y() = va.v;
 
@@ -253,6 +257,10 @@ void MergeMesh::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes)
                 (*vi).N()[1] = myMeshes[i]->vert[j].N()[1];
                 (*vi).N()[2] = myMeshes[i]->vert[j].N()[2];
 
+                (*vi).C()[0] = myMeshes[i]->vert[j].C()[0];
+                (*vi).C()[1] = myMeshes[i]->vert[j].C()[1];
+                (*vi).C()[2] = myMeshes[i]->vert[j].C()[2];
+                (*vi).C()[3] = myMeshes[i]->vert[j].C()[3];
                 //(*vi).T().P().X() = va.u;
                 //(*vi).T().P().Y() = va.v;
 
@@ -304,6 +312,26 @@ int MergeMesh::addMesh(int materialIdx, MyMesh* myMesh)
     //newMesh.name = mesh->name;
     Primitive newPrimitive;
     m_currentMesh = myMesh;
+
+    m_totalVertex = 0;
+    m_totalFace = 0;
+    for (vector<MyVertex>::iterator it = myMesh->vert.begin(); it != myMesh->vert.end(); ++it)
+    {
+        if (it->IsD())
+        {
+            continue;
+        }
+        m_totalVertex++;
+    }
+    for (vector<MyFace>::iterator it = myMesh->face.begin(); it != myMesh->face.end(); ++it)
+    {
+        if (it->IsD())
+        {
+            continue;
+        }
+    }
+    m_totalFace++;
+
     addPrimitive(&newPrimitive);
     newPrimitive.mode = 4;
     newPrimitive.material = materialIdx;
@@ -436,6 +464,7 @@ int MergeMesh::addBuffer(AccessorType type)
         byteLength = m_totalVertex * sizeof(unsigned int);
         break;
     case POSITION:
+        m_vertexUintMap.clear();
         m_positionMin[0] = m_positionMin[1] = m_positionMin[2] = INFINITY;
         m_positionMax[0] = m_positionMax[1] = m_positionMax[2] = -INFINITY;
 
