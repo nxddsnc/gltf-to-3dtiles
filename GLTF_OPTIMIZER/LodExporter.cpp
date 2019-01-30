@@ -9,22 +9,6 @@ LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinyg
     m_pModel = model;
     m_myMeshes = myMeshes;
 
-    m_pParams = new TriEdgeCollapseQuadricParameter();
-    m_pParams->QualityThr = .3;
-    m_pParams->PreserveBoundary = false; // Perserve mesh boundary
-    m_pParams->PreserveTopology = false;
-    //m_pParams->QualityThr = .3;
-    //m_pParams->QualityCheck = true;
-    //m_pParams->HardQualityCheck = false;
-    //m_pParams->NormalCheck = false;
-    //m_pParams->AreaCheck = false;
-    //m_pParams->OptimalPlacement = false;
-    //m_pParams->ScaleIndependent = false;
-    //m_pParams->PreserveBoundary = true; // Perserve mesh boundary
-    //m_pParams->PreserveTopology = false;
-    //m_pParams->QualityQuadric = false;
-    //m_pParams->QualityWeight = false;
-
     m_pTinyGTLF = tinyGLTF;
     m_currentTileLevel = 0;
     m_batchLegnthsJson = nlohmann::json({});
@@ -32,11 +16,7 @@ LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinyg
 
 LodExporter::~LodExporter()
 {
-    if (m_pParams != NULL)
-    {
-        delete m_pParams;
-        m_pParams = NULL;
-    }
+
 }
 
 void LodExporter::getMeshIdxs(std::vector<int> nodeIdxs, std::vector<int>& meshIdxs)
@@ -168,41 +148,8 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     Model* pNewModel = new Model;
     MergeMesh mergeMesh = MergeMesh(m_pModel, pNewModel, m_myMeshes, tileInfo->nodes, bufferName);
     mergeMesh.DoMerge();
+    mergeMesh.DoDecimation(0.1);
 
-    // decimation
-    float geometryError = 0;
-    if (m_currentTileLevel != g_settings.tileLevel)
-    {
-        for (int j = 0; j < meshIdxs.size(); ++j)
-        {
-            MyMesh* myMesh = m_myMeshes[meshIdxs[j]];
-            if (myMesh->fn <= MIN_FACE_NUM)
-            {
-                continue;
-            }
-            // decimator initialization
-            vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
-            deciSession.Init<MyTriEdgeCollapse>();
-            uint32_t finalSize = myMesh->fn * 0.5;
-            deciSession.SetTargetSimplices(finalSize); // Target face number;
-            deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
-            deciSession.SetTargetOperations(100000);
-            int maxTry = 100;
-            int currentTry = 0;
-            do
-            {
-                deciSession.DoOptimization();
-                currentTry++;
-            } while (myMesh->fn > finalSize && currentTry < maxTry);
-
-            geometryError += deciSession.currMetric;
-        }
-        geometryError /= meshIdxs.size();
-    }
-
-    tileInfo->geometryError = geometryError;
-
-    
     // output
     char contentUri[1024];
     sprintf(contentUri, "%d/%d-%d.b3dm", tileInfo->level, tileInfo->level, fileIdx);

@@ -4,7 +4,6 @@
 #include <unordered_map>
 #include <stdio.h>
 #include "json.hpp"
-#define MIN_FACE_NUM 10 // If face number is less then this, don't decimate then. 
 
 namespace tinygltf
 {
@@ -36,7 +35,6 @@ private:
     std::vector<MyMesh*> m_myMeshes;
     TileInfo* m_pTileInfo;
     int m_currentTileLevel;
-    TriEdgeCollapseQuadricParameter* m_pParams;
     tinygltf::TinyGLTF* m_pTinyGTLF;
     nlohmann::json m_tilesetJson;
     nlohmann::json m_batchLegnthsJson;

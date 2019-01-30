@@ -4,15 +4,16 @@
 #include <map>
 #include "tiny_gltf.h"
 #include "GltfUtils.h"
+#include "MyMesh.h"
 #define MATERIAL_EPS 0.01
+#define MIN_FACE_NUM 10 // If face number is less then this, don't decimate then. 
+
 //
 //namespace tinygltf
 //{
 //	class Model;
 //}
 
-class MyMesh;
-class MyVertex;
 enum AccessorType
 {
     POSITION,
@@ -92,11 +93,13 @@ public:
 	~MergeMesh();
 
 	void DoMerge();
+    void DoDecimation(float targetPercetage);
     void ConstructNewModel();
 private :
     void mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> meshes);
-    void MergeMesh::createMyMesh(std::vector<MyMesh*> myMeshes);
+    void MergeMesh::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes);
 
+    int MergeMesh::addMesh(MyMesh* myMesh);
     void MergeMesh::addPrimitive(tinygltf::Primitive* primitive);
     int MergeMesh::addAccessor(AccessorType type);
     int MergeMesh::addBufferView(AccessorType type, size_t& byteOffset);
@@ -105,7 +108,7 @@ private:
 	tinygltf::Model* m_pModel;
     tinygltf::Model* m_pNewModel;
 	std::vector<MyMesh*> m_myMeshes;
-    std::vector<MyMesh*> m_myNewMeshes;
+    std::unordered_map<int, std::vector<MyMesh*>> m_materialNewMeshesMap;
     std::vector<int> m_nodesToMerge;
     std::string m_bufferName;
     std::unordered_map<tinygltf::Material, std::vector<MyMesh*>, material_hash_fn, material_equal_fn> m_materialMeshMap;
@@ -122,6 +125,8 @@ private:
     int m_totalVertex;
     int m_totalFace;
 
-    std::vector<MyMesh*> m_currentMeshes;
+    MyMesh* m_currentMesh;
     std::unordered_map<MyMesh*, Matrix44f> m_meshMatrixMap;
+
+    TriEdgeCollapseQuadricParameter* m_pParams;
 };

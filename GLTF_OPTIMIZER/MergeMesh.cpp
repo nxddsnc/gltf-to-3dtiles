@@ -1,5 +1,4 @@
 #include "MergeMesh.h"
-#include "MyMesh.h"
 #include <algorithm>
 using namespace tinygltf;
 using namespace std;
@@ -21,9 +20,13 @@ MergeMesh::MergeMesh(tinygltf::Model* model, tinygltf::Model* newModel, std::vec
 
 MergeMesh::~MergeMesh()
 {
-    for (int i = 0; i < m_myNewMeshes.size(); ++i)
+    std::unordered_map<int, std::vector<MyMesh*>>::iterator it;
+    for (it = m_materialNewMeshesMap.begin(); it != m_materialNewMeshesMap.end(); ++it)
     {
-        delete m_myNewMeshes[i];
+        for (int i = 0; i < it->second.size(); ++i)
+        {
+            delete it->second[i];
+        }
     }
     delete m_pParams;
 }
@@ -38,7 +41,6 @@ struct mesh_compare_fn
 
 void MergeMesh::ConstructNewModel()
 {
-    // Add nodes according to material.
     {
         // FIXME: Support more than 3 bufferviews.
         BufferView arraybufferView;
@@ -65,8 +67,6 @@ void MergeMesh::ConstructNewModel()
         m_pNewModel->bufferViews.push_back(elementArraybufferView);
     }
 
-    std::unordered_map<tinygltf::Material, std::vector<MyMesh*>, material_hash_fn, material_equal_fn>::iterator it;
-
     Node root;
     root.name = "scene_root";
     m_pNewModel->nodes.push_back(root);
@@ -75,15 +75,25 @@ void MergeMesh::ConstructNewModel()
     scene.nodes.push_back(0);
     m_pNewModel->scenes.push_back(scene);
     m_pNewModel->asset.version = "2.0";
-    for (it = m_materialMeshMap.begin(); it != m_materialMeshMap.end(); ++it)
+    std::unordered_map<int, std::vector<MyMesh*>>::iterator it;
+    int index;
+    for (it = m_materialNewMeshesMap.begin(); it != m_materialNewMeshesMap.end(); ++it)
     {
-        m_pNewModel->materials.push_back(it->first);
+        Material material = m_pModel->materials[it->first];
+        m_pNewModel->materials.push_back(material);
 
         std::vector<MyMesh*> myMeshes = it->second;
 
-        std::sort(myMeshes.begin(), myMeshes.end(), mesh_compare_fn());
+        for (int i = 0; i < myMeshes.size(); ++i)
+        {
+            Node node;
 
-        mergeSameMaterialMeshes(m_pNewModel->materials.size() - 1, myMeshes);
+            node.name = std::to_string(index);
+            node.mesh = addMesh(myMeshes[i]);
+            m_pNewModel->nodes.push_back(node);
+
+            index++;
+        }
     }
 
     {
@@ -100,6 +110,38 @@ void MergeMesh::ConstructNewModel()
     memcpy(buffer.data.data() + m_currentAttributeBuffer.size() + m_currentBatchIdBuffer.size(),
         m_currentIndexBuffer.data(), m_currentIndexBuffer.size());
     m_pNewModel->buffers.push_back(buffer);
+}
+
+void MergeMesh::DoDecimation(float targetPercetage)
+{
+    std::unordered_map<int, std::vector<MyMesh*>>::iterator it;
+    for (it = m_materialNewMeshesMap.begin(); it != m_materialNewMeshesMap.end(); ++it)
+    {
+        for (int i = 0; i < it->second.size(); ++i)
+        {
+            MyMesh* myMesh = it->second[i];
+            if (myMesh->fn <= MIN_FACE_NUM)
+            {
+                continue;
+            }
+            // decimator initialization
+            vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
+            deciSession.Init<MyTriEdgeCollapse>();
+            uint32_t finalSize = myMesh->fn * targetPercetage;
+            deciSession.SetTargetSimplices(finalSize); // Target face number;
+            deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
+            deciSession.SetTargetOperations(100000);
+            int maxTry = 100;
+            int currentTry = 0;
+            do
+            {
+                deciSession.DoOptimization();
+                currentTry++;
+            } while (myMesh->fn > finalSize && currentTry < maxTry);
+
+            //geometryError += deciSession.currMetric;
+        }
+    }
 }
 
 void MergeMesh::DoMerge()
@@ -150,10 +192,21 @@ void MergeMesh::DoMerge()
     }
 }
 
-void MergeMesh::createMyMesh(std::vector<MyMesh*> myMeshes)
+void MergeMesh::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes)
 {
     MyMesh* newMesh = new MyMesh();
-    m_myNewMeshes.push_back(newMesh);
+
+    if (m_materialNewMeshesMap.count(materialIdx) > 0) 
+    {
+        m_materialNewMeshesMap.at(materialIdx).push_back(newMesh);
+    }
+    else
+    {
+        std::vector<MyMesh*> newMeshes;
+        newMeshes.push_back(newMesh);
+        m_materialNewMeshesMap.insert(make_pair(materialIdx, newMeshes));
+    }
+
     int vertexCount;
     int faceCount;
     std::unordered_map<VertexPointer, VertexPointer> vertexMap;
@@ -238,7 +291,7 @@ void MergeMesh::mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> my
                 m_totalFace += myMesh->fn;
             }
 
-            createMyMesh(meshesToMerge);
+            createMyMesh(materialIdx, meshesToMerge);
         }
 
         meshesToMerge.push_back(myMesh);
@@ -247,6 +300,18 @@ void MergeMesh::mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> my
     }
 }
 
+int MergeMesh::addMesh(MyMesh* myMesh)
+{
+    Mesh newMesh;
+    //newMesh.name = mesh->name;
+    Primitive newPrimitive;
+    m_currentMesh = myMesh;
+    addPrimitive(&newPrimitive);
+    newMesh.primitives.push_back(newPrimitive);
+
+    m_pNewModel->meshes.push_back(newMesh);
+    return m_pNewModel->meshes.size() - 1;
+}
 void MergeMesh::addPrimitive(Primitive* primitive)
 {
     int positionAccessorIdx = addAccessor(POSITION);
@@ -353,117 +418,72 @@ int MergeMesh::addBuffer(AccessorType type)
     int byteLength = 0;
     int index = 0;
     unsigned char* temp = NULL;
+    MyMesh* myMesh = m_currentMesh;
     switch (type)
     {
     case BATCH_ID:
-        for (int i = 0; i < m_currentMeshes.size(); ++i)
+        for (vector<MyVertex>::iterator it = myMesh->vert.begin(); it != myMesh->vert.end(); ++it)
         {
-            MyMesh* myMesh = m_currentMeshes[i];
-            for (vector<MyVertex>::iterator it = myMesh->vert.begin(); it != myMesh->vert.end(); ++it)
+            if (it->IsD())
             {
-                if (it->IsD())
-                {
-                    continue;
-                }
-                m_currentBatchIdBuffer.push_back(it->C().X());
-                m_currentBatchIdBuffer.push_back(it->C().Y());
-                m_currentBatchIdBuffer.push_back(it->C().Z());
-                m_currentBatchIdBuffer.push_back(it->C().W());
+                continue;
             }
+            m_currentBatchIdBuffer.push_back(it->C().X());
+            m_currentBatchIdBuffer.push_back(it->C().Y());
+            m_currentBatchIdBuffer.push_back(it->C().Z());
+            m_currentBatchIdBuffer.push_back(it->C().W());
         }
         byteLength = m_totalVertex * sizeof(unsigned int);
         break;
     case POSITION:
         m_positionMin[0] = m_positionMin[1] = m_positionMin[2] = INFINITY;
         m_positionMax[0] = m_positionMax[1] = m_positionMax[2] = -INFINITY;
-        for (int i = 0; i < m_currentMeshes.size(); ++i)
+
+        for (vector<MyVertex>::iterator it = myMesh->vert.begin(); it != myMesh->vert.end(); ++it)
         {
-            MyMesh* myMesh = m_currentMeshes[i];
-            Matrix44f matrix;
-            bool hasMatrix = false;
-            if (m_meshMatrixMap.count(myMesh) > 0)
+            if (it->IsD())
             {
-                hasMatrix = true;
-                matrix = m_meshMatrixMap.at(myMesh);
+                continue;
             }
-            for (vector<MyVertex>::iterator it = myMesh->vert.begin(); it != myMesh->vert.end(); ++it)
+
+            for (int i = 0; i < 3; ++i)
             {
-                if (it->IsD())
+                if (m_positionMin[i] > it->P()[i])
                 {
-                    continue;
+                    m_positionMin[i] = it->P()[i];
+                }
+                if (m_positionMax[i] < it->P()[i])
+                {
+                    m_positionMax[i] = it->P()[i];
                 }
 
-                Point4f point;
-                point.X() = it->P()[0];
-                point.Y() = it->P()[1];
-                point.Z() = it->P()[2];
-                point.W() = 1.0;
-
-                if (hasMatrix)
-                {
-                    point = matrix * point;
-                }
-
-                for (int i = 0; i < 3; ++i)
-                {
-                    if (m_positionMin[i] > point[i])
-                    {
-                        m_positionMin[i] = point[i];
-                    }
-                    if (m_positionMax[i] < point[i])
-                    {
-                        m_positionMax[i] = point[i];
-                    }
-
-                    temp = (unsigned char*)&(point[i]);
-                    m_currentAttributeBuffer.push_back(temp[0]);
-                    m_currentAttributeBuffer.push_back(temp[1]);
-                    m_currentAttributeBuffer.push_back(temp[2]);
-                    m_currentAttributeBuffer.push_back(temp[3]);
-                }
-
-                m_vertexUshortMap.insert(make_pair(&(*it), index));
-                index++;
+                temp = (unsigned char*)&(it->P()[i]);
+                m_currentAttributeBuffer.push_back(temp[0]);
+                m_currentAttributeBuffer.push_back(temp[1]);
+                m_currentAttributeBuffer.push_back(temp[2]);
+                m_currentAttributeBuffer.push_back(temp[3]);
             }
+
+            m_vertexUshortMap.insert(make_pair(&(*it), index));
+            index++;
         }
         byteLength = m_totalVertex * 3 * sizeof(float);
         break;
-    case NORMAL:    
-        for (int i = 0; i < m_currentMeshes.size(); ++i)
+    case NORMAL:
+        for (vector<MyVertex>::iterator it = myMesh->vert.begin(); it != myMesh->vert.end(); ++it)
         {
-            MyMesh* myMesh = m_currentMeshes[i];
-            bool hasMatrix = false;
-            Matrix44f matrix;
-            if (m_meshMatrixMap.count(myMesh) > 0)
+            if (it->IsD())
             {
-                hasMatrix = true;
-                matrix = m_meshMatrixMap.at(myMesh);
+                continue;
             }
-            for (vector<MyVertex>::iterator it = myMesh->vert.begin(); it != myMesh->vert.end(); ++it)
-            {
-                if (it->IsD())
-                {
-                    continue;
-                }
 
-                Point3f point;
-                point.X() = it->N()[0];
-                point.Y() = it->N()[1];
-                point.Z() = it->N()[2];
-                if (hasMatrix)
-                {
-                    Matrix33f normalMatrix = Matrix33f(matrix, 3);
-                    normalMatrix = Inverse(normalMatrix);
-                    point = normalMatrix * point;
-                }
-                for (int i = 0; i < 3; ++i)
-                {
-                    temp = (unsigned char*)&(point[i]);
-                    m_currentAttributeBuffer.push_back(temp[0]);
-                    m_currentAttributeBuffer.push_back(temp[1]);
-                    m_currentAttributeBuffer.push_back(temp[2]);
-                    m_currentAttributeBuffer.push_back(temp[3]);
-                }
+            for (int i = 0; i < 3; ++i)
+            {
+                temp = (unsigned char*)&(it->N()[i]);
+                m_currentAttributeBuffer.push_back(temp[0]);
+                m_currentAttributeBuffer.push_back(temp[1]);
+                m_currentAttributeBuffer.push_back(temp[2]);
+                m_currentAttributeBuffer.push_back(temp[3]);
             }
         }
         byteLength = m_totalVertex * 3 * sizeof(float);
@@ -472,35 +492,31 @@ int MergeMesh::addBuffer(AccessorType type)
         // FIXME: Implement UV
         break;
     case INDEX:
-        for (int i = 0; i < m_currentMeshes.size(); ++i)
+        for (vector<MyFace>::iterator it = myMesh->face.begin(); it != myMesh->face.end(); ++it)
         {
-            MyMesh* myMesh = m_currentMeshes[i];
-            for (vector<MyFace>::iterator it = myMesh->face.begin(); it != myMesh->face.end(); ++it)
+            if (it->IsD())
             {
-                if (it->IsD())
+                continue;
+            }
+            for (int i = 0; i < 3; ++i)
+            {
+                if (m_totalVertex > 65536)
                 {
-                    continue;
+                    temp = (unsigned char*)&(m_vertexUshortMap.at(it->V(i)));
+                    m_currentIndexBuffer.push_back(temp[0]);
+                    m_currentIndexBuffer.push_back(temp[1]);
+                    m_currentIndexBuffer.push_back(temp[2]);
+                    m_currentIndexBuffer.push_back(temp[3]);
                 }
-                for (int i = 0; i < 3; ++i)
+                else
                 {
-                    if (m_totalVertex > 65536)
-                    {
-                        temp = (unsigned char*)&(m_vertexUshortMap.at(it->V(i)));
-                        m_currentIndexBuffer.push_back(temp[0]);
-                        m_currentIndexBuffer.push_back(temp[1]);
-                        m_currentIndexBuffer.push_back(temp[2]);
-                        m_currentIndexBuffer.push_back(temp[3]);
-                    }
-                    else
-                    {
-                        temp = (unsigned char*)&(m_vertexUshortMap.at(it->V(i)));
-                        m_currentIndexBuffer.push_back(temp[0]);
-                        m_currentIndexBuffer.push_back(temp[1]);
-                    }
+                    temp = (unsigned char*)&(m_vertexUshortMap.at(it->V(i)));
+                    m_currentIndexBuffer.push_back(temp[0]);
+                    m_currentIndexBuffer.push_back(temp[1]);
                 }
             }
         }
-        byteLength = m_totalFace * 3 * (m_totalVertex > 65536? sizeof(uint32_t) : sizeof(uint16_t));
+        byteLength = m_totalFace * 3 * (m_totalVertex > 65536 ? sizeof(uint32_t) : sizeof(uint16_t));
         break;
     default:
         break;
