@@ -91,7 +91,7 @@ void MergeMesh::ConstructNewModel()
             node.name = std::to_string(index);
             node.mesh = addMesh(myMeshes[i]);
             m_pNewModel->nodes.push_back(node);
-
+            root.children.push_back(m_pNewModel->nodes.size() - 1);
             index++;
         }
     }
@@ -308,6 +308,7 @@ int MergeMesh::addMesh(MyMesh* myMesh)
     Primitive newPrimitive;
     m_currentMesh = myMesh;
     addPrimitive(&newPrimitive);
+    newPrimitive.mode = 4;
     newMesh.primitives.push_back(newPrimitive);
 
     m_pNewModel->meshes.push_back(newMesh);
