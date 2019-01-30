@@ -76,17 +76,17 @@ bool LodExporter::ExportTileset()
 
 	// add a dummy transform to root to make the tileset position at globe surface.
 	nlohmann::json dummyTransform = nlohmann::json::array();
-	dummyTransform.push_back(0.9717966035675396);
-	dummyTransform.push_back(0.23582061253120834);
+	dummyTransform.push_back(1);
 	dummyTransform.push_back(0);
 	dummyTransform.push_back(0);
-	dummyTransform.push_back(-0.13509253137814733);
-	dummyTransform.push_back(0.5567047839944483);
-	dummyTransform.push_back(0.8196522381129321);
 	dummyTransform.push_back(0);
-	dummyTransform.push_back(0.19329089285436749);
-	dummyTransform.push_back(-0.7965352611046796);
-	dummyTransform.push_back(0.5728614217735919);
+	dummyTransform.push_back(0);
+	dummyTransform.push_back(1);
+	dummyTransform.push_back(0);
+	dummyTransform.push_back(0);
+	dummyTransform.push_back(0);
+	dummyTransform.push_back(0);
+	dummyTransform.push_back(1);
 	dummyTransform.push_back(0);
 	dummyTransform.push_back(1234215.482895546);
 	dummyTransform.push_back(-5086096.594671654);
