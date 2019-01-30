@@ -89,7 +89,7 @@ void MergeMesh::ConstructNewModel()
             Node node;
 
             node.name = std::to_string(index);
-            node.mesh = addMesh(myMeshes[i]);
+            node.mesh = addMesh(m_pNewModel->materials.size() - 1, myMeshes[i]);
             m_pNewModel->nodes.push_back(node);
             root.children.push_back(m_pNewModel->nodes.size() - 1);
             index++;
@@ -301,7 +301,7 @@ void MergeMesh::mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> my
     }
 }
 
-int MergeMesh::addMesh(MyMesh* myMesh)
+int MergeMesh::addMesh(int materialIdx, MyMesh* myMesh)
 {
     Mesh newMesh;
     //newMesh.name = mesh->name;
@@ -309,6 +309,7 @@ int MergeMesh::addMesh(MyMesh* myMesh)
     m_currentMesh = myMesh;
     addPrimitive(&newPrimitive);
     newPrimitive.mode = 4;
+    newPrimitive.material = materialIdx;
     newMesh.primitives.push_back(newPrimitive);
 
     m_pNewModel->meshes.push_back(newMesh);

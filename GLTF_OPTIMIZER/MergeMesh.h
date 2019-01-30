@@ -99,7 +99,7 @@ private :
     void mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> meshes);
     void MergeMesh::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes);
 
-    int MergeMesh::addMesh(MyMesh* myMesh);
+    int MergeMesh::addMesh(int materialIdx, MyMesh* myMesh);
     void MergeMesh::addPrimitive(tinygltf::Primitive* primitive);
     int MergeMesh::addAccessor(AccessorType type);
     int MergeMesh::addBufferView(AccessorType type, size_t& byteOffset);
