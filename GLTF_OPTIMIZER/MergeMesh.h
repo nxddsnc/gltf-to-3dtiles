@@ -93,7 +93,7 @@ public:
 	~MergeMesh();
 
 	void DoMerge();
-    void DoDecimation(float targetPercetage);
+    float DoDecimation(float targetPercetage);
     void ConstructNewModel();
 private :
     void mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> meshes);

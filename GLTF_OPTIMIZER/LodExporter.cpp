@@ -12,6 +12,7 @@ LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinyg
     m_pTinyGTLF = tinyGLTF;
     m_currentTileLevel = 0;
     m_batchLegnthsJson = nlohmann::json({});
+    m_maxGeometricError = 0;
 }
 
 LodExporter::~LodExporter()
@@ -50,7 +51,7 @@ bool LodExporter::ExportTileset()
     nlohmann::json version = nlohmann::json({});
     version["version"] = "1.0";
     tilesetJson["asset"] = version;
-    tilesetJson["geometricError"] = "200000";
+    tilesetJson["geometricError"] = std::to_string(m_maxGeometricError + 2000);
     nlohmann::json root = nlohmann::json({});
     tilesetJson["root"] = traverseExportTileSetJson(m_pTileInfo);
 
@@ -128,10 +129,6 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
         traverseExportTile(tileInfo->children[i]);
     }
 
-    std::vector<int> meshIdxs;
-    // FIXME: Cache it if there's performance  issue.
-    getMeshIdxs(tileInfo->nodes, meshIdxs);
-
     char bufferName[1024];
     int fileIdx = 0;
     if (m_levelAccumMap.count(tileInfo->level) > 0)
@@ -145,11 +142,15 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
         m_levelAccumMap.insert(make_pair(tileInfo->level, fileIdx));
     }
     sprintf(bufferName, "%d-%d.bin", tileInfo->level, fileIdx);
-    
+
     Model* pNewModel = new Model;
     MergeMesh mergeMesh = MergeMesh(m_pModel, pNewModel, m_myMeshes, tileInfo->nodes, bufferName);
     mergeMesh.DoMerge();
-    mergeMesh.DoDecimation(pow(0.5, g_settings.tileLevel - tileInfo->level));
+    tileInfo->geometryError = mergeMesh.DoDecimation(pow(0.5, g_settings.tileLevel - tileInfo->level));
+    if (tileInfo->geometryError > m_maxGeometricError)
+    {
+        m_maxGeometricError = tileInfo->geometryError;
+    }
     mergeMesh.ConstructNewModel();
     // output
     char contentUri[1024];
@@ -188,6 +189,8 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     {
         printf("cannot create output filepath\n");
     }
+
+    delete pNewModel;
 
     m_currentTileLevel--;
 }

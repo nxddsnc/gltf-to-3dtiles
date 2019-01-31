@@ -1,5 +1,6 @@
 #include "MergeMesh.h"
 #include <algorithm>
+#include "vcg/complex/algorithms/clean.h"
 using namespace tinygltf;
 using namespace std;
 
@@ -109,22 +110,21 @@ void MergeMesh::ConstructNewModel()
     m_pNewModel->buffers.push_back(buffer);
 }
 
-void MergeMesh::DoDecimation(float targetPercetage)
+float MergeMesh::DoDecimation(float targetPercentage)
 {
     std::unordered_map<int, std::vector<MyMesh*>>::iterator it;
+    float geometryError = 0;
     for (it = m_materialNewMeshesMap.begin(); it != m_materialNewMeshesMap.end(); ++it)
     {
         for (int i = 0; i < it->second.size(); ++i)
         {
             MyMesh* myMesh = it->second[i];
-            if (myMesh->fn <= MIN_FACE_NUM)
-            {
-                continue;
-            }
             // decimator initialization
             vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
             deciSession.Init<MyTriEdgeCollapse>();
-            uint32_t finalSize = myMesh->fn * targetPercetage;
+            // FIXME: If the mesh bbox is large and it's face number is ralatively few, we should not do decimation.
+            uint32_t finalSize = myMesh->fn * targetPercentage;
+            finalSize = finalSize < MIN_FACE_NUM ? MIN_FACE_NUM : finalSize;
             deciSession.SetTargetSimplices(finalSize); // Target face number;
             deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
             deciSession.SetTargetOperations(100000);
@@ -136,9 +136,13 @@ void MergeMesh::DoDecimation(float targetPercetage)
                 currentTry++;
             } while (myMesh->fn > finalSize && currentTry < maxTry);
 
-            //geometryError += deciSession.currMetric;
+            geometryError += deciSession.currMetric;
+        
+            tri::Clean<MyMesh>::RemoveDuplicateVertex(*myMesh);
+            tri::Clean<MyMesh>::RemoveUnreferencedVertex(*myMesh);
         }
     }
+    return geometryError;
 }
 
 void MergeMesh::DoMerge()
