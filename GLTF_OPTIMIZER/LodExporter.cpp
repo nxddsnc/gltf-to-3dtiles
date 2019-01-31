@@ -2,6 +2,7 @@
 #include "tiny_gltf.h"
 #include "globals.h"
 #include "MergeMesh.h"
+#include "vcg\complex\algorithms\clean.h"
 using namespace tinygltf;
 
 LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinygltf::TinyGLTF* tinyGLTF)
@@ -179,8 +180,10 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
 			} while (myMesh->fn > finalSize && currentTry < maxTry);
 
             geometryError += deciSession.currMetric;
+
+            tri::Clean<MyMesh>::RemoveDuplicateVertex(*myMesh);
+            tri::Clean<MyMesh>::RemoveUnreferencedVertex(*myMesh);
 		}
-        geometryError /= meshIdxs.size();
 	}
     
     tileInfo->geometryError = geometryError;
@@ -190,8 +193,8 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     int fileIdx = 0;
     if (m_levelAccumMap.count(tileInfo->level) > 0)
     {
-        fileIdx = m_levelAccumMap.at(tileInfo->level);
         m_levelAccumMap.at(tileInfo->level)++;
+        fileIdx = m_levelAccumMap.at(tileInfo->level);
     }
     else
     {
@@ -240,6 +243,8 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     {
         printf("cannot create output filepath\n");
     }
+    
+    delete pNewModel;
 
     m_currentTileLevel--;
 }

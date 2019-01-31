@@ -301,6 +301,16 @@ int MergeMesh::addBuffer(AccessorType type)
                 {
                     continue;
                 }
+
+                //char x = 255;
+                //char y = 0;
+                //char z = 0;
+                //char w = 255;
+                //m_currentBatchIdBuffer.push_back(x);
+                //m_currentBatchIdBuffer.push_back(y);
+                //m_currentBatchIdBuffer.push_back(z);
+                //m_currentBatchIdBuffer.push_back(w);
+
                 m_currentBatchIdBuffer.push_back(it->C().X());
                 m_currentBatchIdBuffer.push_back(it->C().Y());
                 m_currentBatchIdBuffer.push_back(it->C().Z());

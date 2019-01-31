@@ -77,39 +77,31 @@ Box3f SpatialTree::getNodeBBox(Node* node)
         MyMesh* mesh = m_meshes[node->mesh];
         vcg::tri::UpdateBounding<MyMesh>::Box(*mesh);
         Box3f box = mesh->bbox;
-        if (node->matrix.size() > 0)
-        {
-            float matrixValues[16];
-            for (int k = 0; k < 16; ++k)
-            {
-                matrixValues[k] = (float)node->matrix[k];
-            }
-            result.Add(matrixValues, box);
-        }
-        else
-        {
-            result.Add(box);
-        }
+        result.Add(box);
     }
     for (int i = 0; i < node->children.size(); ++i)
     {
         Box3f box = getNodeBBox(&(m_pModel->nodes[node->children[i]]));
-        if (m_pModel->nodes[node->children[i]].matrix.size() > 0)
-        {
-            float matrixValues[16];
-            for (int k = 0; k < 16; ++k)
-            {
-                int row = k / 4;
-                int col = k % 4;
-                matrixValues[k] = (float)m_pModel->nodes[node->children[i]].matrix[col * 4 + row];
-            }
-            result.Add(matrixValues, box);
-        }
-        else
-        {
-            result.Add(box);
-        }
+        result.Add(box);
     }
+
+    if (node->matrix.size() > 0)
+    {
+        Box3f temp = result;
+        result.min.X() = result.min.Y() = result.min.Z() = INFINITY;
+        result.max.X() = result.max.Y() = result.max.Z() = -INFINITY;
+        float matrixValues[16];
+        for (int k = 0; k < 16; ++k)
+        {
+            int row = k / 4;
+            int col = k % 4;
+            //matrixValues[k] = (float)node->matrix[col * 4 + row];
+            matrixValues[k] = (float)node->matrix[k];
+        }
+        result.Add(matrixValues, temp);
+    }
+
+
     return result;
 }
 

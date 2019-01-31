@@ -175,7 +175,7 @@ int main(int argc, char *argv[])
 		{
 			MyMesh* mesh = myMeshes[meshIdxs[j]];
 
-			int nodeId = atoi(node->name.c_str());
+            float nodeId = i + 1; // atoi(node->name.c_str());
 			// Write the batchIds into vertex color component in little endian.
 
             vector<MyVertex>::iterator it;
