@@ -1,10 +1,10 @@
 # GLTF-Optimizer
 A command line tool to convert gltf(glb) file to 3d tiles format.
 
-#Usage example
+# Usage example
 GLTF_OPTIMIZER.exe -i "../data/test.gltf" -o "../data/output"
 
-#Build
+# Build
 git clone -b devel https://github.com/cnr-isti-vclab/vcglib.git
 
 Set environment VCG_LIB to root of vcglib.
