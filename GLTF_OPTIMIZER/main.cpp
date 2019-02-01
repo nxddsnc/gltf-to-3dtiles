@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 
 	/****************************************  step1. Write batchIds to mesh color component  ******************************************************/
 
-
+    g_settings.batchLength = model->nodes[0].children.size();
 	for (int i = 0; i < model->nodes[0].children.size(); ++i)
 	{
 		int nodeIdx = model->nodes[0].children[i];
@@ -175,7 +175,7 @@ int main(int argc, char *argv[])
 		{
 			MyMesh* mesh = myMeshes[meshIdxs[j]];
 
-            float nodeId = i + 1; // atoi(node->name.c_str());
+            float nodeId = i;//  atoi(node->name.c_str());
 			// Write the batchIds into vertex color component in little endian.
 
             vector<MyVertex>::iterator it;

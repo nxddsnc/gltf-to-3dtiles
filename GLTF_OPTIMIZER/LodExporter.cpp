@@ -99,8 +99,9 @@ bool LodExporter::ExportTileset()
     std::ofstream file(filepath);
     file << tilesetJson;
 
-    sprintf(filepath, "%s/batchLengthes.json", g_settings.outputPath);
+    sprintf(filepath, "%s/batchLength.json", g_settings.outputPath);
     std::ofstream batchLengthJson(filepath);
+    m_batchLegnthsJson["batchLength"] = g_settings.batchLength;
     batchLengthJson << m_batchLegnthsJson;
 
     return true;
@@ -230,13 +231,6 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
         else
         {
             printf("gltf write error\n");
-        }
-
-        if (g_settings.writeBinary)
-        {
-            char key[1024];
-            sprintf(key, "%d-%d.glb", tileInfo->level, fileIdx);
-            m_batchLegnthsJson[key] = tileInfo->nodes.size();
         }
     }
     else
