@@ -10,23 +10,6 @@ LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinyg
     m_pModel = model;
     m_myMeshes = myMeshes;
 
-    m_pParams = new TriEdgeCollapseQuadricParameter();
-    m_pParams->QualityThr = .3;
-    m_pParams->PreserveBoundary = false; // Perserve mesh boundary
-    m_pParams->PreserveTopology = false;
-    m_pParams->OptimalPlacement = false;
-    //m_pParams->QualityThr = .3;
-    //m_pParams->QualityCheck = true;
-    //m_pParams->HardQualityCheck = false;
-    //m_pParams->NormalCheck = false;
-    //m_pParams->AreaCheck = false;
-    //m_pParams->OptimalPlacement = false;
-    //m_pParams->ScaleIndependent = false;
-    //m_pParams->PreserveBoundary = true; // Perserve mesh boundary
-    //m_pParams->PreserveTopology = false;
-    //m_pParams->QualityQuadric = false;
-    //m_pParams->QualityWeight = false;
-
     m_pTinyGTLF = tinyGLTF;
     m_currentTileLevel = 0;
     m_batchLegnthsJson = nlohmann::json({});
@@ -35,11 +18,7 @@ LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinyg
 
 LodExporter::~LodExporter()
 {
-    if (m_pParams != NULL)
-    {
-        delete m_pParams;
-        m_pParams = NULL;
-    }
+
 }
 
 void LodExporter::getMeshIdxs(std::vector<int> nodeIdxs, std::vector<int>& meshIdxs)
@@ -118,6 +97,7 @@ nlohmann::json LodExporter::traverseExportTileSetJson(TileInfo* tileInfo)
     boundingSphere.push_back(center.X());
     boundingSphere.push_back(-center.Z());
     boundingSphere.push_back(center.Y());
+    boundingSphere.push_back(center.Z());
     boundingSphere.push_back(radius);
     parent["boundingVolume"] = nlohmann::json({});
     parent["boundingVolume"]["sphere"] = boundingSphere;
@@ -152,70 +132,30 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
         traverseExportTile(tileInfo->children[i]);
     }
 
-    std::vector<int> meshIdxs;
-    // FIXME: Cache it if there's performance  issue.
-    getMeshIdxs(tileInfo->nodes, meshIdxs);
-
-    // decimation
-    float geometryError = 0;
-	if (m_currentTileLevel != g_settings.tileLevel)
-	{
-		for (int j = 0; j < meshIdxs.size(); ++j)
-		{
-			MyMesh* myMesh = m_myMeshes[meshIdxs[j]];
-			if (myMesh->fn <= MIN_FACE_NUM)
-			{
-				continue;
-			}
-			// decimator initialization
-			vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
-			deciSession.Init<MyTriEdgeCollapse>();
-			uint32_t finalSize = myMesh->fn * 0.5;
-			deciSession.SetTargetSimplices(finalSize); // Target face number;
-			deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
-			deciSession.SetTargetOperations(100000);
-			int maxTry = 100;
-			int currentTry = 0;
-			do
-			{
-				deciSession.DoOptimization();
-				currentTry++;
-			} while (myMesh->fn > finalSize && currentTry < maxTry);
-
-            float error = deciSession.currMetric / myMesh->vn;
-            if (geometryError < error)
-            {
-                geometryError = error;
-            }
-
-            tri::Clean<MyMesh>::RemoveUnreferencedVertex(*myMesh);
-		}
-	}
-    
-    if (m_maxGeometricError < geometryError)
-    {
-        m_maxGeometricError = geometryError;
-    }
-    tileInfo->geometryError = geometryError;
-
 
     char bufferName[1024];
     int fileIdx = 0;
     if (m_levelAccumMap.count(tileInfo->level) > 0)
     {
-        m_levelAccumMap.at(tileInfo->level)++;
         fileIdx = m_levelAccumMap.at(tileInfo->level);
+        fileIdx++;
+        m_levelAccumMap.at(tileInfo->level)++;
     }
     else
     {
         m_levelAccumMap.insert(make_pair(tileInfo->level, fileIdx));
     }
     sprintf(bufferName, "%d-%d.bin", tileInfo->level, fileIdx);
-    
+
     Model* pNewModel = new Model;
     MergeMesh mergeMesh = MergeMesh(m_pModel, pNewModel, m_myMeshes, tileInfo->nodes, bufferName);
     mergeMesh.DoMerge();
-    
+    tileInfo->geometryError = mergeMesh.DoDecimation(pow(0.5, g_settings.tileLevel - tileInfo->level));
+    if (tileInfo->geometryError > m_maxGeometricError)
+    {
+        m_maxGeometricError = tileInfo->geometryError;
+    }
+    mergeMesh.ConstructNewModel();
     // output
     char contentUri[1024];
     sprintf(contentUri, "%d/%d-%d.b3dm", tileInfo->level, tileInfo->level, fileIdx);
@@ -239,14 +179,14 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
         }
         else
         {
-            printf("gltf write error\n");
+            printf("gltf write error\n");= tileInfo->nodes.size();
         }
     }
     else
     {
         printf("cannot create output filepath\n");
     }
-    
+
     delete pNewModel;
 
     m_currentTileLevel--;
