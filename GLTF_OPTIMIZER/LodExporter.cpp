@@ -2,6 +2,7 @@
 #include "tiny_gltf.h"
 #include "globals.h"
 #include "MergeMesh.h"
+#include "vcg\complex\algorithms\clean.h"
 using namespace tinygltf;
 
 LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinygltf::TinyGLTF* tinyGLTF)
@@ -51,7 +52,7 @@ bool LodExporter::ExportTileset()
     nlohmann::json version = nlohmann::json({});
     version["version"] = "1.0";
     tilesetJson["asset"] = version;
-    tilesetJson["geometricError"] = std::to_string(m_maxGeometricError + 2000);
+    tilesetJson["geometricError"] = std::to_string(m_maxGeometricError * 1.1);
     nlohmann::json root = nlohmann::json({});
     tilesetJson["root"] = traverseExportTileSetJson(m_pTileInfo);
 
@@ -79,8 +80,9 @@ bool LodExporter::ExportTileset()
     std::ofstream file(filepath);
     file << tilesetJson;
 
-    sprintf(filepath, "%s/batchLengthes.json", g_settings.outputPath);
+    sprintf(filepath, "%s/batchLength.json", g_settings.outputPath);
     std::ofstream batchLengthJson(filepath);
+    m_batchLegnthsJson["batchLength"] = g_settings.batchLength;
     batchLengthJson << m_batchLegnthsJson;
 
     return true;
@@ -93,6 +95,7 @@ nlohmann::json LodExporter::traverseExportTileSetJson(TileInfo* tileInfo)
     float radius = tileInfo->boundingBox->Diag() * 0.5;
     nlohmann::json boundingSphere = nlohmann::json::array();
     boundingSphere.push_back(center.X());
+    boundingSphere.push_back(-center.Z());
     boundingSphere.push_back(center.Y());
     boundingSphere.push_back(center.Z());
     boundingSphere.push_back(radius);
@@ -128,6 +131,7 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     {
         traverseExportTile(tileInfo->children[i]);
     }
+
 
     char bufferName[1024];
     int fileIdx = 0;
@@ -175,14 +179,7 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
         }
         else
         {
-            printf("gltf write error\n");
-        }
-
-        if (g_settings.writeBinary)
-        {
-            char key[1024];
-            sprintf(key, "%d-%d.glb", tileInfo->level, fileIdx);
-            m_batchLegnthsJson[key] = tileInfo->nodes.size();
+            printf("gltf write error\n");= tileInfo->nodes.size();
         }
     }
     else

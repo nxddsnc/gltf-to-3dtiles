@@ -14,33 +14,54 @@ var startup = function(Cesium) {
         navigationHelpButton: false,
         navigationInstructionsInitiallyVisible: false,
         creditContainer: 'dummy',
-        globe: false
+        globe: false,
+        skybox: null
     });
 
-    // Set the initial camera view to look at Manhattan
-    // var initialPosition = Cesium.Cartesian3.fromDegrees(-74.01881302800248, 40.69114333714821, 753);
-    // var initialOrientation = new Cesium.HeadingPitchRoll.fromDegrees(21.27879878293835, -21.34390550872461, 0.0716951918898415);
-    // viewer.scene.camera.setView({
-    //     destination: initialPosition,
-    //     orientation: initialOrientation,
-    //     endTransform: Cesium.Matrix4.IDENTITY
-    // });
-
-    // Load the NYC buildings tileset
     var tileset = new Cesium.Cesium3DTileset({
         url: 'http://localhost:8081/tileset.json'
     });
+    tileset.maximumScreenSpaceError = 1000;
+    // tileset.dynamicScreenSpaceError = true;
+
     tileset.readyPromise.then(function(tileset) {
         viewer.zoomTo(tileset, new Cesium.HeadingPitchRange(0.5, -0.2, tileset.boundingSphere.radius * 4.0));
+        // tileset.debugShowBoundingVolume = true;
     }).otherwise(function(error) {
         console.log(error);
     });
     viewer.scene.primitives.add(tileset);
+    viewer.scene.skyBox.destroy();
+    viewer.scene.skyBox = undefined;
+    viewer.scene.sun.destroy();
+    viewer.scene.sun = undefined;
+    viewer.scene.backgroundColor = Cesium.Color.WHITE.clone();
     // new Cesium.CesiumInspector(document.getElementById("inspector"),  viewer.scene)
     // viewer.extend(Cesium.viewerCesiumInspectorMixin);
     viewer.extend(Cesium.viewerCesium3DTilesInspectorMixin);
     // viewer.extend(Cesium.viewerDragDropMixin);
     // viewer.extend(Cesium.viewerPerformanceWatchdogMixin);
+
+    var lastFeature = null;
+    var handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    handler.setInputAction(function(movement) {
+        var feature = viewer.scene.pick(movement.endPosition);
+
+        // unselectFeature(selectedFeature);
+
+        if (feature instanceof Cesium.Cesium3DTileFeature) {
+            // console.log(feature);
+            // selectFeature(feature);
+            if (lastFeature) {
+                lastFeature.color = Cesium.Color.WHITE;
+                // lastFeature.show = true;
+            }
+            // feature.primitive.debugShowBoundingVolume = true;
+            // feature.show =false;
+            feature.color = Cesium.Color.RED;
+            lastFeature = feature;
+        }
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
 }
 if (typeof Cesium !== 'undefined') {

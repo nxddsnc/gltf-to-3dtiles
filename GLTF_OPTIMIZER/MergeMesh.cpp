@@ -1,4 +1,5 @@
 #include "MergeMesh.h"
+#include "MyMesh.h"
 #include <algorithm>
 #include "vcg/complex/algorithms/clean.h"
 using namespace tinygltf;
@@ -31,6 +32,7 @@ MergeMesh::~MergeMesh()
     }
     delete m_pParams;
 }
+
 
 struct mesh_compare_fn
 {
@@ -68,6 +70,7 @@ void MergeMesh::ConstructNewModel()
         m_pNewModel->bufferViews.push_back(elementArraybufferView);
     }
 
+
     Node root;
     root.name = "scene_root";
     m_pNewModel->nodes.push_back(root);
@@ -86,12 +89,7 @@ void MergeMesh::ConstructNewModel()
         {
             Node node;
 
-            node.name = std::to_string(index);
-            node.mesh = addMesh(it->first, myMeshes[i]);
-            m_pNewModel->nodes.push_back(node);
-            m_pNewModel->nodes[0].children.push_back(m_pNewModel->nodes.size() - 1);
-            index++;
-        }
+        addMergedMeshesToNewModel(m_pNewModel->materials.size() - 1, myMeshes);
     }
 
     {
@@ -300,6 +298,20 @@ void MergeMesh::mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> my
                 m_totalVertex += myMesh->vn;
                 m_totalFace += myMesh->fn;
             }
+            // add mesh node
+            Node node;
+            Mesh newMesh;
+            char meshName[1024];
+            sprintf(meshName, "%d", m_currentMeshIdx);
+            node.name = string(meshName);
+            newMesh.name = string(meshName);
+            
+            Primitive newPrimitive;
+            newPrimitive.mode = 4; // currently only support triangle mesh.
+            newPrimitive.material = materialIdx;
+            m_currentMeshes = meshesToMerge;
+            addPrimitive(&newPrimitive);
+            newMesh.primitives.push_back(newPrimitive);
 
             createMyMesh(materialIdx, meshesToMerge);
         }
