@@ -187,7 +187,6 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
                 geometryError = error;
             }
 
-            tri::Clean<MyMesh>::RemoveDuplicateVertex(*myMesh);
             tri::Clean<MyMesh>::RemoveUnreferencedVertex(*myMesh);
 		}
 	}

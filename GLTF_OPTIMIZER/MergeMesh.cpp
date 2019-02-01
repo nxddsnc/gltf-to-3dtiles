@@ -380,10 +380,13 @@ int MergeMesh::addBuffer(AccessorType type)
             MyMesh* myMesh = m_currentMeshes[i];
             bool hasMatrix = false;
             Matrix44f matrix;
+            Matrix33f normalMatrix;
             if (m_meshMatrixMap.count(myMesh) > 0)
             {
                 hasMatrix = true;
                 matrix = m_meshMatrixMap.at(myMesh);
+                normalMatrix = Matrix33f(matrix, 3);
+                normalMatrix = Inverse(normalMatrix);
             }
             for (vector<MyVertex>::iterator it = myMesh->vert.begin(); it != myMesh->vert.end(); ++it)
             {
@@ -398,8 +401,6 @@ int MergeMesh::addBuffer(AccessorType type)
                 point.Z() = it->N()[2];
                 if (hasMatrix)
                 {
-                    Matrix33f normalMatrix = Matrix33f(matrix, 3);
-                    normalMatrix = Inverse(normalMatrix);
                     point = normalMatrix * point;
                 }
                 for (int i = 0; i < 3; ++i)
