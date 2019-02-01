@@ -11,6 +11,7 @@
 #include <vcg/complex/algorithms/local_optimization.h>
 #include <vcg/complex/algorithms/local_optimization/tri_edge_collapse_quadric.h>
 #include "tiny_gltf.h"
+#include <vcg/complex/algorithms/clean.h>
 using namespace tinygltf;
 
 using namespace vcg;
@@ -105,6 +106,13 @@ int main(int argc, char *argv[])
         MyMesh myMesh;
 
         Mesh mesh = model->meshes[i];
+        if (strcmp(mesh.name.c_str(), "374") != 0)
+        {
+            continue;
+        }
+
+        vcg::tri::Clean<MyMesh>::RemoveUnreferencedVertex(myMesh);
+
         int positionAccessorIdx = mesh.primitives[0].attributes.at("POSITION");
         int normalAccessorIdx = mesh.primitives[0].attributes.at("NORMAL");
         int indicesAccessorIdx = mesh.primitives[0].indices;
@@ -168,6 +176,7 @@ int main(int argc, char *argv[])
         qparams.QualityThr = .3;
         qparams.PreserveBoundary = false;
         qparams.PreserveTopology = false;
+        qparams.OptimalPlacement = false;
         //double TargetError = std::numeric_limits<double >::max();
         //double TargetError = 0.5;
         //qparams.QualityCheck = true;
@@ -202,11 +211,15 @@ int main(int argc, char *argv[])
         printf("Initial Heap Size %i\n", int(DeciSession.h.size()));
 
         DeciSession.SetTargetSimplices(FinalSize);
-        DeciSession.SetTimeBudget(0.005f);
+        DeciSession.SetTimeBudget(0.5f);
         DeciSession.SetTargetOperations(100000);
         //if (TargetError< std::numeric_limits<float>::max()) DeciSession.SetTargetMetric(TargetError);
 
-        DeciSession.DoOptimization();
+        int counter = 0;
+        do {
+            DeciSession.DoOptimization();
+            counter++;
+        } while (myMesh.fn > FinalSize && counter < 100);
         //DeciSession.DoOptimization();
         //while (DeciSession.DoOptimization() && myMesh.fn>FinalSize && DeciSession.currMetric < TargetError)
         //    printf("Current Mesh size %7i heap sz %9i err %9g \n", myMesh.fn, int(DeciSession.h.size()), DeciSession.currMetric);
