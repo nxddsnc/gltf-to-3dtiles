@@ -46,7 +46,23 @@ TileInfo* SpatialTree::GetTilesetInfo()
         }
         m_treeDepth = g_settings.tileLevel - 1;
     }
+    recomputeTileBox(m_pTileRoot);
     return m_pTileRoot;
+}
+
+void SpatialTree::recomputeTileBox(TileInfo* parent)
+{
+    for (int i = 0; i < parent->children.size(); ++i)
+    {
+        recomputeTileBox(parent->children[i]);
+    }
+    parent->boundingBox->min.X() = parent->boundingBox->min.Y() = parent->boundingBox->min.Z() = INFINITY;
+    parent->boundingBox->max.X() = parent->boundingBox->max.Y() = parent->boundingBox->max.Z() = -INFINITY;
+    for (int i = 0; i < parent->nodes.size(); ++i)
+    {
+        Box3f box = m_nodeBoxMap.at(parent->nodes[i]);
+        parent->boundingBox->Add(box);
+    }
 }
 
 void SpatialTree::deleteMyTreeNode(MyTreeNode* node)
@@ -95,8 +111,8 @@ Box3f SpatialTree::getNodeBBox(Node* node)
         {
             int row = k / 4;
             int col = k % 4;
-            //matrixValues[k] = (float)node->matrix[col * 4 + row];
-            matrixValues[k] = (float)node->matrix[k];
+            matrixValues[k] = (float)node->matrix[col * 4 + row];
+            //matrixValues[k] = (float)node->matrix[k];
         }
         result.Add(matrixValues, temp);
     }
@@ -128,7 +144,7 @@ void SpatialTree::Initialize()
     sceneBox->max.X() = sceneBox->max.Y() = sceneBox->max.Z() = -INFINITY;
     for (int i = 0; i < totalNodeSize; ++i)
     {
-        sceneBox->Add(m_nodeBoxMap[i]);
+        sceneBox->Add(m_nodeBoxMap[root.children[i]]);
     }
     m_pRoot = new MyTreeNode;
     m_pRoot->nodes = m_pModel->nodes[0].children;

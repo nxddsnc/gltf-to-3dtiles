@@ -55,6 +55,7 @@ private:
 
     void deleteMyTreeNode(MyTreeNode* node);
     void deleteTileInfo(TileInfo* tileInfo);
+    void recomputeTileBox(TileInfo* parent);
 private:
     void splitTreeNode(MyTreeNode* father, TileInfo* parentTile);
 };

@@ -113,8 +113,8 @@ nlohmann::json LodExporter::traverseExportTileSetJson(TileInfo* tileInfo)
     float radius = tileInfo->boundingBox->Diag() * 0.5;
     nlohmann::json boundingSphere = nlohmann::json::array();
     boundingSphere.push_back(center.X());
+    boundingSphere.push_back(-center.Z());
     boundingSphere.push_back(center.Y());
-    boundingSphere.push_back(center.Z());
     boundingSphere.push_back(radius);
     parent["boundingVolume"] = nlohmann::json({});
     parent["boundingVolume"]["sphere"] = boundingSphere;
