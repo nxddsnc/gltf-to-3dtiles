@@ -41,5 +41,6 @@ private:
     nlohmann::json m_tilesetJson;
     nlohmann::json m_batchLegnthsJson;
     std::unordered_map<int, int> m_levelAccumMap; // To Identify the bin name in the same folder.
+    float m_maxGeometricError;
 };
 

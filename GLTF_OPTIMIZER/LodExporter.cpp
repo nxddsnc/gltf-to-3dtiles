@@ -29,6 +29,7 @@ LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinyg
     m_pTinyGTLF = tinyGLTF;
     m_currentTileLevel = 0;
     m_batchLegnthsJson = nlohmann::json({});
+    m_maxGeometricError = 0;
 }
 
 LodExporter::~LodExporter()
@@ -71,7 +72,7 @@ bool LodExporter::ExportTileset()
     nlohmann::json version = nlohmann::json({});
     version["version"] = "1.0";
     tilesetJson["asset"] = version;
-    tilesetJson["geometricError"] = "200000";
+    tilesetJson["geometricError"] = std::to_string(m_maxGeometricError * 1.1);
     nlohmann::json root = nlohmann::json({});
     tilesetJson["root"] = traverseExportTileSetJson(m_pTileInfo);
 
@@ -180,13 +181,21 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
 				currentTry++;
 			} while (myMesh->fn > finalSize && currentTry < maxTry);
 
-            geometryError += deciSession.currMetric;
+            float error = deciSession.currMetric / myMesh->vn;
+            if (geometryError < error)
+            {
+                geometryError = error;
+            }
 
             tri::Clean<MyMesh>::RemoveDuplicateVertex(*myMesh);
             tri::Clean<MyMesh>::RemoveUnreferencedVertex(*myMesh);
 		}
 	}
     
+    if (m_maxGeometricError < geometryError)
+    {
+        m_maxGeometricError = geometryError;
+    }
     tileInfo->geometryError = geometryError;
 
 
