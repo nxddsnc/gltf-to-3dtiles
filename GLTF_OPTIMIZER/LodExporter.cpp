@@ -14,6 +14,7 @@ LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinyg
     m_pParams->QualityThr = .3;
     m_pParams->PreserveBoundary = false; // Perserve mesh boundary
     m_pParams->PreserveTopology = false;
+    m_pParams->OptimalPlacement = false;
     //m_pParams->QualityThr = .3;
     //m_pParams->QualityCheck = true;
     //m_pParams->HardQualityCheck = false;
