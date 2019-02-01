@@ -166,18 +166,20 @@ int main(int argc, char *argv[])
         /**********************   decimation    *******************************/
         TriEdgeCollapseQuadricParameter qparams;
         qparams.QualityThr = .3;
-        //double TargetError = std::numeric_limits<double >::max();
-        double TargetError = 0.5;
-        qparams.QualityCheck = true;
-        qparams.HardQualityCheck = false;
-        qparams.NormalCheck = false;
-        qparams.AreaCheck = false;
-        qparams.OptimalPlacement = false;
-        qparams.ScaleIndependent = false;
         qparams.PreserveBoundary = false;
         qparams.PreserveTopology = false;
-        qparams.QualityQuadric = false;
-        qparams.QualityWeight = false;
+        //double TargetError = std::numeric_limits<double >::max();
+        //double TargetError = 0.5;
+        //qparams.QualityCheck = true;
+        //qparams.HardQualityCheck = false;
+        //qparams.NormalCheck = false;
+        //qparams.AreaCheck = false;
+        //qparams.OptimalPlacement = false;
+        //qparams.ScaleIndependent = false;
+        //qparams.PreserveBoundary = false;
+        //qparams.PreserveTopology = false;
+        //qparams.QualityQuadric = false;
+        //qparams.QualityWeight = false;
         //qparams.QualityQuadricWeight = atof(argv[i] + 2);
         //qparams.QualityWeightFactor = atof(argv[i] + 2);
         //qparams.QualityThr = atof(argv[i] + 2);
@@ -186,8 +188,7 @@ int main(int argc, char *argv[])
         //qparams.BoundaryQuadricWeight = atof(argv[i] + 2);
         //qparams.QuadricEpsilon = atof(argv[i] + 2);
 
-        float FinalSize = 0.5 * faceNum;
-        TargetError = 100;// atof(argv[i] + 2);
+        float FinalSize = 0.5 * 0.5 * 0.5 * 0.5 * faceNum;
         bool CleaningFlag = true;
 
         vcg::tri::UpdateBounding<MyMesh>::Box(myMesh);
