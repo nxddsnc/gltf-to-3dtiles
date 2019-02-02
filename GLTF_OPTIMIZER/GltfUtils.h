@@ -67,7 +67,7 @@ static void GetNodeMeshInfos(tinygltf::Model* model, tinygltf::Node* node, std::
         }
         if (parentMatrix != NULL)
         {
-            matrix = matrix * (*parentMatrix);
+            matrix = (*parentMatrix) * matrix;
         }
 
         if (node->children.size() > 0)

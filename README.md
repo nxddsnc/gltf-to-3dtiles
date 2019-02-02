@@ -1,10 +1,10 @@
 # GLTF-Optimizer
 A command line tool to convert gltf(glb) file to 3d tiles format.
 
-#Usage example
+# Usage example
 GLTF_OPTIMIZER.exe -i "../data/test.gltf" -o "../data/output"
 
-#Build
+# Build
 git clone -b devel https://github.com/cnr-isti-vclab/vcglib.git
 
 Set environment VCG_LIB to root of vcglib.
@@ -28,6 +28,15 @@ Step5. Output the tileset.json file and corresponding gltf/glb(contains batchId)
 
 After conversion, we can use 3dtiles-tools to convert glb to b3dm so that it can be viewed in cesium.js. Or use the command called "glbsToB3dms" in my fork (https://github.com/nxddsnc/3d-tiles-tools).
 
+# Limits
+Currently, it do not support all gltf file formats. 
+    The tree structure of the gltf is corresponding to revit:
+    -scene_root
+     	-childElement
+    		-childMesh
+    	-childElement
+            -childInstance
+     			-childMesh
 # Notice
 ##### It is just a test project yet and the gltf file format is limited to the structure as it was in https://github.com/nxddsnc/GLTF-Optimizer/tree/master/data with no textures supported yet. And currently I am working on branch dev#mergeMesh.
 ##### If you have any questions, please contact me(fanqileiOGL@163.com).

@@ -58,10 +58,9 @@ void SpatialTree::recomputeTileBox(TileInfo* parent)
     }
     parent->boundingBox->min.X() = parent->boundingBox->min.Y() = parent->boundingBox->min.Z() = INFINITY;
     parent->boundingBox->max.X() = parent->boundingBox->max.Y() = parent->boundingBox->max.Z() = -INFINITY;
-    for (int i = 0; i < parent->nodes.size(); ++i)
+    for (int i = 0; i < parent->myMeshInfos.size(); ++i)
     {
-        Box3f box = m_nodeBoxMap.at(parent->nodes[i]);
-        parent->boundingBox->Add(box);
+        parent->boundingBox->Add(parent->myMeshInfos[i].myMesh->bbox);
     }
 }
 
@@ -82,129 +81,78 @@ void SpatialTree::deleteMyTreeNode(MyTreeNode* node)
     }
 }
 
-Box3f SpatialTree::getNodeBBox(Node* node)
-{
-    Box3f result;
-    result.min.X() = result.min.Y() = result.min.Z() = INFINITY;
-    result.max.X() = result.max.Y() = result.max.Z() = -INFINITY;
-
-    if (node->mesh != -1)
-    {
-        MyMesh* mesh = m_meshes[node->mesh];
-        vcg::tri::UpdateBounding<MyMesh>::Box(*mesh);
-        Box3f box = mesh->bbox;
-        result.Add(box);
-    }
-    for (int i = 0; i < node->children.size(); ++i)
-    {
-        Box3f box = getNodeBBox(&(m_pModel->nodes[node->children[i]]));
-        result.Add(box);
-    }
-
-    if (node->matrix.size() > 0)
-    {
-        Box3f temp = result;
-        result.min.X() = result.min.Y() = result.min.Z() = INFINITY;
-        result.max.X() = result.max.Y() = result.max.Z() = -INFINITY;
-        float matrixValues[16];
-        for (int k = 0; k < 16; ++k)
-        {
-            int row = k / 4;
-            int col = k % 4;
-            matrixValues[k] = (float)node->matrix[col * 4 + row];
-        }
-        result.Add(matrixValues, temp);
-    }
-
-    return result;
-}
-
 void SpatialTree::Initialize()
 {
-    // Travese nodes and calculate bounding box for each element;
-    // The tree structure of the gltf is corresponding to revit:
-    // -scene_root
-    //      -childElement
-    //          -childMesh
-    //      -childElement
-    //          -childInstance
-    //              -childMesh
-    Node root = m_pModel->nodes[0];
-    for (int i = 0; i < root.children.size(); i++)
-    {
-        Box3f box = getNodeBBox(&(m_pModel->nodes[root.children[i]]));
-        m_nodeBoxMap.insert(make_pair(root.children[i], box));
-    }
-    
-    int totalNodeSize = m_pModel->nodes[0].children.size();
     Box3f* sceneBox = new Box3f();
     sceneBox->min.X() = sceneBox->min.Y() = sceneBox->min.Z() = INFINITY;
     sceneBox->max.X() = sceneBox->max.Y() = sceneBox->max.Z() = -INFINITY;
-    for (int i = 0; i < totalNodeSize; ++i)
+    
+    m_pTileRoot = new TileInfo;
+    
+    for (int i = 0; i < m_meshes.size(); ++i)
     {
-        sceneBox->Add(m_nodeBoxMap[root.children[i]]);
+        sceneBox->Add(m_meshes[i]->bbox);
+        MyMeshInfo meshInfo;
+        meshInfo.myMesh = m_meshes[i];
+        meshInfo.material = &(m_pModel->materials[m_pModel->meshes[i].primitives[0].material]);
+        m_pTileRoot->myMeshInfos.push_back(meshInfo);
     }
-    m_pRoot = new MyTreeNode;
-    m_pRoot->nodes = m_pModel->nodes[0].children;
-    m_pRoot->boundingBox = sceneBox;
+    m_pTileRoot->boundingBox = sceneBox;
 
-    splitTreeNode(m_pRoot, m_pTileRoot);
+    splitTreeNode(m_pTileRoot);
 }
 
-void SpatialTree::splitTreeNode(MyTreeNode* father, TileInfo* parentTile)
+void SpatialTree::splitTreeNode(TileInfo* parentTile)
 {
-    parentTile->boundingBox = father->boundingBox;
-
     if (m_currentDepth > m_treeDepth) 
     {
         m_treeDepth = m_currentDepth;
     }
 
     m_currentDepth++;
-    Point3f dim = father->boundingBox->Dim();
-    if (father->nodes.size() < MIN_TREE_NODE || m_currentDepth > g_settings.maxTreeDepth)
+    Point3f dim = parentTile->boundingBox->Dim();
+    if (parentTile->myMeshInfos.size() < MIN_TREE_NODE || m_currentDepth > g_settings.maxTreeDepth)
     {
         m_currentDepth--;
         return;
     }
 
-    MyTreeNode* pLeft = new MyTreeNode();
-    MyTreeNode* pRight = new MyTreeNode();
-    pLeft->boundingBox = new Box3f(*father->boundingBox);
-    pRight->boundingBox  = new Box3f(*father->boundingBox);
+    TileInfo* pLeft = new TileInfo;
+    TileInfo* pRight = new TileInfo;
+    pLeft->boundingBox = new Box3f(*parentTile->boundingBox);
+    pRight->boundingBox  = new Box3f(*parentTile->boundingBox);
 
     if (dim.X() > dim.Y() && dim.X() > dim.Z())
     {
         // Split X
-        pLeft->boundingBox->max.X() = pRight->boundingBox->min.X() = father->boundingBox->Center().X();
+        pLeft->boundingBox->max.X() = pRight->boundingBox->min.X() = parentTile->boundingBox->Center().X();
     }
     else if (dim.Y() > dim.X() && dim.Y() > dim.Z())
     {
         // Split Y
-        pLeft->boundingBox->max.Y() = pRight->boundingBox->min.Y() = father->boundingBox->Center().Y();
+        pLeft->boundingBox->max.Y() = pRight->boundingBox->min.Y() = parentTile->boundingBox->Center().Y();
     }
     else
     {
         // Split Z
-        pLeft->boundingBox->max.Z() = pRight->boundingBox->min.Z() = father->boundingBox->Center().Z();
+        pLeft->boundingBox->max.Z() = pRight->boundingBox->min.Z() = parentTile->boundingBox->Center().Z();
     }
 
-    for (int i = 0; i < father->nodes.size(); ++i)
+    for (int i = 0; i < parentTile->myMeshInfos.size(); ++i)
     {
-        int nodeIdx = father->nodes[i];
-        Box3f childBox = m_nodeBoxMap.at(nodeIdx);
-        if (pLeft->boundingBox->IsInEx(childBox.Center()))
+        MyMeshInfo meshInfo = parentTile->myMeshInfos[i];
+        if (pLeft->boundingBox->IsInEx(meshInfo.myMesh->bbox.Center()))
         {
-            pLeft->nodes.push_back(nodeIdx);
+            pLeft->myMeshInfos.push_back(meshInfo);
         }
         else
         {
-            pRight->nodes.push_back(nodeIdx);
+            pRight->myMeshInfos.push_back(meshInfo);
         }
     }
 
     // delete if children is empty
-    if (pLeft->nodes.size() == 0)
+    if (pLeft->myMeshInfos.size() == 0)
     {
         delete pLeft;
         pLeft = NULL;
@@ -213,12 +161,12 @@ void SpatialTree::splitTreeNode(MyTreeNode* father, TileInfo* parentTile)
     {
         TileInfo* pLeftTile = new TileInfo;
         parentTile->children.push_back(pLeftTile);
-        splitTreeNode(pLeft, pLeftTile);
-        father->left = pLeft;
+        splitTreeNode(pLeftTile);
+        parentTile->children.push_back(pLeft);
     }
 
     // delete if children is empty
-    if (pRight->nodes.size() == 0)
+    if (pRight->myMeshInfos.size() == 0)
     {
         delete pRight;
         pRight = NULL;
@@ -227,20 +175,8 @@ void SpatialTree::splitTreeNode(MyTreeNode* father, TileInfo* parentTile)
     {
         TileInfo* pRightTile = new TileInfo;
         parentTile->children.push_back(pRightTile);
-        splitTreeNode(pRight, pRightTile);
-        father->right = pRight;
-    }
-
-    if (pLeft == NULL && pRight == NULL) // if it is a leaf node, the insert material, mesh to meshInfos
-    {
-        for (int i = 0; i < father->nodes.size(); ++i)
-        {
-            int nodeIdx = father->nodes.[i];
-            MyMeshInfo* myMeshInfo = new MyMeshInfo;
-            myMeshInfo->material = m_pModel->materials[m_pModel->nodes[nodeIdx]];
-            parentTile->myMeshInfos
-        }
-
+        splitTreeNode(pRightTile);
+        parentTile->children.push_back(pRight);
     }
 
     m_currentDepth--;

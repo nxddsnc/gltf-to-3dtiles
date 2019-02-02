@@ -47,7 +47,7 @@ private:
     tinygltf::Model* m_pModel;
     std::vector<MyMesh*> m_meshes;
     MyTreeNode* m_pRoot;
-    std::unordered_map<int, vcg::Box3f> m_nodeBoxMap; // Start from the sceond node of the scene.
+    std::unordered_map<MyMesh*, vcg::Box3f> m_meshBoxMap; // Start from the sceond node of the scene.
     int m_currentDepth;
     int m_treeDepth;
     TileInfo* m_pTileRoot;

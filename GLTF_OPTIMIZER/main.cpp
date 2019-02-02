@@ -162,33 +162,49 @@ int main(int argc, char *argv[])
     std::printf("My Meshes created\n");
     /****************************************  step0. Read gltf into vcglib mesh.  ******************************************************/
 
-	/****************************************  step1. Write batchIds to mesh color component  ******************************************************/
+	/****************************************  step1. Write batchIds and transform mesh vertices  ******************************************************/
 
     g_settings.batchLength = model->nodes[0].children.size();
+    Point4f tempPt;
 	for (int i = 0; i < model->nodes[0].children.size(); ++i)
 	{
-		int nodeIdx = model->nodes[0].children[i];
+        // Write the batchIds into vertex color component in little endian.
+        // TODO: Check out what happens when two vertices merged into one.
+        int nodeIdx = model->nodes[0].children[i];
 		Node* node = &(model->nodes[nodeIdx]);
-		std::vector<int> meshIdxs;
-		GetNodeMeshIdx(model, node, meshIdxs);
-		for (int j = 0; j < meshIdxs.size(); ++j)
-		{
-			MyMesh* mesh = myMeshes[meshIdxs[j]];
-
-            float nodeId = i;//  atoi(node->name.c_str());
-			// Write the batchIds into vertex color component in little endian.
-            // TODO: Check out what happens when two vertices merged into one.
+	
+        std::vector<MeshInfo> meshInfos;
+        GetNodeMeshInfos(model, node, meshInfos);
+        float nodeId = i; // TODO: If per-node properties are needed, we should store this id in database.
+        unsigned char* batchId = (unsigned char*)&nodeId;
+        for (int j = 0; j < meshInfos.size(); j++)
+        {
+            Matrix44f matrix = *meshInfos[j].matrix;
+            Matrix33f normalMatrix = Matrix33f(*meshInfos[j].matrix, 3);
+            normalMatrix = Inverse(normalMatrix);
+            MyMesh* mesh = myMeshes[meshInfos[j].meshIdx];
             vector<MyVertex>::iterator it;
-            unsigned char* batchId = (unsigned char*)&nodeId;
             for (it = mesh->vert.begin(); it != mesh->vert.end(); ++it)
             {
-                it->C().X() = batchId[0];
-                it->C().Y() = batchId[1];
-                it->C().Z() = batchId[2];
-                it->C().W() = batchId[3];
+                it->C()[0] = batchId[0];
+                it->C()[1] = batchId[1];
+                it->C()[2] = batchId[2];
+                it->C()[3] = batchId[3];
+
+                tempPt[0] = it->P()[0];
+                tempPt[1] = it->P()[1];
+                tempPt[2] = it->P()[2];
+                tempPt[3] = 1;
+                tempPt = matrix * tempPt;
+                it->P()[0] = tempPt[0];
+                it->P()[1] = tempPt[1];
+                it->P()[2] = tempPt[2];
+
+                it->N() = normalMatrix * it->N();
             }
-		}
-	}
+            vcg::tri::UpdateBounding<MyMesh>::Box(*mesh);
+        }
+    }
 
     std::printf("batch id written\n");
 
