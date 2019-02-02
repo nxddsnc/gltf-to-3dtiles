@@ -129,6 +129,7 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     for (int i = 0; i < tileInfo->children.size(); ++i)
     {
         traverseExportTile(tileInfo->children[i]);
+        tileInfo->myMeshInfos.insert(tileInfo->myMeshInfos.end(), tileInfo->children[i]->myMeshInfos.begin(), tileInfo->children[i]->myMeshInfos.end());
     }
 
     char bufferName[1024];
@@ -148,14 +149,9 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     Model* pNewModel = new Model;
 
     getMeshIdxs(tileInfo->nodes);
-    MergeMesh mergeMesh = MergeMesh(m_pModel, pNewModel, m_myMeshes, tileInfo->nodes, bufferName);
-    mergeMesh.DoMerge();
-    tileInfo->geometryError = mergeMesh.DoDecimation(pow(0.5, g_settings.tileLevel - tileInfo->level));
-    if (tileInfo->geometryError > m_maxGeometricError)
-    {
-        m_maxGeometricError = tileInfo->geometryError;
-    }
-    mergeMesh.ConstructNewModel();
+    MeshOptimizer meshOptimizer = MeshOptimizer(m_pModel, pNewModel, tileInfo, bufferName);
+    meshOptimizer.DoMerge();
+
     // output
     char contentUri[1024];
     sprintf(contentUri, "%d/%d-%d.b3dm", tileInfo->level, tileInfo->level, fileIdx);

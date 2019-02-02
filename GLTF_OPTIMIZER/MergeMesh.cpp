@@ -5,13 +5,12 @@
 using namespace tinygltf;
 using namespace std;
 
-MergeMesh::MergeMesh(tinygltf::Model* model, tinygltf::Model* newModel, std::vector<MyMesh*> myMeshes, std::vector<int> nodesToMerge, std::string bufferName)
+MeshOptimizer::MeshOptimizer(tinygltf::Model* model, tinygltf::Model* newModel, std::vector<MyMeshInfo> meshInfos, std::string bufferName)
 {
     m_bufferName = bufferName;
 	m_pModel = model;
     m_pNewModel = newModel;
-	m_myMeshes = myMeshes;
-    m_nodesToMerge = nodesToMerge; 
+    m_meshInfos = meshInfos;
     m_currentMeshIdx = 0;
 
     m_pParams = new TriEdgeCollapseQuadricParameter();
@@ -20,7 +19,7 @@ MergeMesh::MergeMesh(tinygltf::Model* model, tinygltf::Model* newModel, std::vec
     m_pParams->PreserveTopology = false;
 }
 
-MergeMesh::~MergeMesh()
+MeshOptimizer::~MeshOptimizer()
 {
     std::unordered_map<int, std::vector<MyMesh*>>::iterator it;
     for (it = m_materialNewMeshesMap.begin(); it != m_materialNewMeshesMap.end(); ++it)
@@ -33,7 +32,6 @@ MergeMesh::~MergeMesh()
     delete m_pParams;
 }
 
-
 struct mesh_compare_fn
 {
     inline bool operator() (const MyMesh* myMesh1, const MyMesh* myMesh2)
@@ -42,72 +40,72 @@ struct mesh_compare_fn
     }
 };
 
-void MergeMesh::ConstructNewModel()
-{
-    {
-        // FIXME: Support more than 3 bufferviews.
-        BufferView arraybufferView;
-        arraybufferView.target = TINYGLTF_TARGET_ARRAY_BUFFER;
-        arraybufferView.byteLength = 0;
-        arraybufferView.buffer = 0;
-        arraybufferView.byteStride = 12;
-        arraybufferView.byteOffset = 0;
-
-        BufferView batchIdArrayBufferView;
-        batchIdArrayBufferView.target = TINYGLTF_TARGET_ARRAY_BUFFER;
-        batchIdArrayBufferView.byteLength = 0;
-        batchIdArrayBufferView.buffer = 0;
-        batchIdArrayBufferView.byteStride = 4;
-        batchIdArrayBufferView.byteOffset = 0;
-
-        BufferView elementArraybufferView;
-        elementArraybufferView.target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
-        elementArraybufferView.byteLength = 0;
-        elementArraybufferView.buffer = 0;
-
-        m_pNewModel->bufferViews.push_back(arraybufferView);
-        m_pNewModel->bufferViews.push_back(batchIdArrayBufferView);
-        m_pNewModel->bufferViews.push_back(elementArraybufferView);
-    }
-
-    Node root;
-    root.name = "scene_root";
-    m_pNewModel->nodes.push_back(root);
-    Scene scene;
-    scene.name = "scene";
-    scene.nodes.push_back(0);
-    m_pNewModel->scenes.push_back(scene);
-    m_pNewModel->asset.version = "2.0";
-    std::unordered_map<int, std::vector<MyMesh*>>::iterator it;
-    int index = 0;
-    for (it = m_materialNewMeshesMap.begin(); it != m_materialNewMeshesMap.end(); ++it)
-    {
-        std::vector<MyMesh*> myMeshes = it->second;
-
-        for (int i = 0; i < myMeshes.size(); ++i)
-        {
-            Node node;
-
-        addMergedMeshesToNewModel(m_pNewModel->materials.size() - 1, myMeshes);
-    }
-
-    {
-        // FIXME: Support more than 3 bufferviews.
-        m_pNewModel->bufferViews[1].byteOffset = m_currentAttributeBuffer.size();
-        m_pNewModel->bufferViews[2].byteOffset = m_currentAttributeBuffer.size() + m_currentBatchIdBuffer.size();
-    }
-
-    Buffer buffer;
-    buffer.uri = m_bufferName;
-    buffer.data.resize(m_currentAttributeBuffer.size() + m_currentIndexBuffer.size() + m_currentBatchIdBuffer.size());
-    memcpy(buffer.data.data(), m_currentAttributeBuffer.data(), m_currentAttributeBuffer.size());
-    memcpy(buffer.data.data() + m_currentAttributeBuffer.size(), m_currentBatchIdBuffer.data(), m_currentBatchIdBuffer.size());
-    memcpy(buffer.data.data() + m_currentAttributeBuffer.size() + m_currentBatchIdBuffer.size(),
-        m_currentIndexBuffer.data(), m_currentIndexBuffer.size());
-    m_pNewModel->buffers.push_back(buffer);
-}
-
-float MergeMesh::DoDecimation(float targetPercentage)
+//void MeshOptimizer::ConstructNewModel()
+//{
+//    {
+//        // FIXME: Support more than 3 bufferviews.
+//        BufferView arraybufferView;
+//        arraybufferView.target = TINYGLTF_TARGET_ARRAY_BUFFER;
+//        arraybufferView.byteLength = 0;
+//        arraybufferView.buffer = 0;
+//        arraybufferView.byteStride = 12;
+//        arraybufferView.byteOffset = 0;
+//
+//        BufferView batchIdArrayBufferView;
+//        batchIdArrayBufferView.target = TINYGLTF_TARGET_ARRAY_BUFFER;
+//        batchIdArrayBufferView.byteLength = 0;
+//        batchIdArrayBufferView.buffer = 0;
+//        batchIdArrayBufferView.byteStride = 4;
+//        batchIdArrayBufferView.byteOffset = 0;
+//
+//        BufferView elementArraybufferView;
+//        elementArraybufferView.target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
+//        elementArraybufferView.byteLength = 0;
+//        elementArraybufferView.buffer = 0;
+//
+//        m_pNewModel->bufferViews.push_back(arraybufferView);
+//        m_pNewModel->bufferViews.push_back(batchIdArrayBufferView);
+//        m_pNewModel->bufferViews.push_back(elementArraybufferView);
+//    }
+//
+//    Node root;
+//    root.name = "scene_root";
+//    m_pNewModel->nodes.push_back(root);
+//    Scene scene;
+//    scene.name = "scene";
+//    scene.nodes.push_back(0);
+//    m_pNewModel->scenes.push_back(scene);
+//    m_pNewModel->asset.version = "2.0";
+//    std::unordered_map<int, std::vector<MyMesh*>>::iterator it;
+//    int index = 0;
+//    for (it = m_materialNewMeshesMap.begin(); it != m_materialNewMeshesMap.end(); ++it)
+//    {
+//        std::vector<MyMesh*> myMeshes = it->second;
+//
+//        for (int i = 0; i < myMeshes.size(); ++i)
+//        {
+//            Node node;
+//
+//        addMergedMeshesToNewModel(m_pNewModel->materials.size() - 1, myMeshes);
+//    }
+//
+//    {
+//        // FIXME: Support more than 3 bufferviews.
+//        m_pNewModel->bufferViews[1].byteOffset = m_currentAttributeBuffer.size();
+//        m_pNewModel->bufferViews[2].byteOffset = m_currentAttributeBuffer.size() + m_currentBatchIdBuffer.size();
+//    }
+//
+//    Buffer buffer;
+//    buffer.uri = m_bufferName;
+//    buffer.data.resize(m_currentAttributeBuffer.size() + m_currentIndexBuffer.size() + m_currentBatchIdBuffer.size());
+//    memcpy(buffer.data.data(), m_currentAttributeBuffer.data(), m_currentAttributeBuffer.size());
+//    memcpy(buffer.data.data() + m_currentAttributeBuffer.size(), m_currentBatchIdBuffer.data(), m_currentBatchIdBuffer.size());
+//    memcpy(buffer.data.data() + m_currentAttributeBuffer.size() + m_currentBatchIdBuffer.size(),
+//        m_currentIndexBuffer.data(), m_currentIndexBuffer.size());
+//    m_pNewModel->buffers.push_back(buffer);
+//}
+//
+float MeshOptimizer::DoDecimation(float targetPercentage)
 {
     std::unordered_map<int, std::vector<MyMesh*>>::iterator it;
     float geometryError = 0;
@@ -142,40 +140,21 @@ float MergeMesh::DoDecimation(float targetPercentage)
     return geometryError;
 }
 
-void MergeMesh::DoMerge()
+void MeshOptimizer::DoMerge()
 {
-	for (int i = 0; i < m_nodesToMerge.size(); ++i)
-	{
-		Node* node = &(m_pModel->nodes[m_nodesToMerge[i]]);
-		std::vector<MeshInfo> meshInfos;
-        GetNodeMeshInfos(m_pModel, node, meshInfos);
-        
-        for (int j = 0; j < meshInfos.size(); ++j)
+    for (int i = 0; i < m_meshInfos.size(); ++i)
+    {
+        if (m_materialMeshMap.count(*m_meshInfos[i].material) > 0)
         {
-            Mesh* mesh = &(m_pModel->meshes[meshInfos[j].meshIdx]);
-
-            if (m_meshMatrixMap.count(m_myMeshes[meshInfos[j].meshIdx]) > 0)
-            {
-                printf("error detected\n");
-            }
-            else if (meshInfos[j].matrix != NULL)
-            {
-                m_meshMatrixMap.insert(make_pair(m_myMeshes[meshInfos[j].meshIdx], *meshInfos[j].matrix));
-            }
-            int materialIdx = mesh->primitives[0].material;
-            Material material = m_pModel->materials[materialIdx];
-            if (m_materialMeshMap.count(material) > 0)
-            {
-                m_materialMeshMap.at(material).push_back(m_myMeshes[meshInfos[j].meshIdx]);
-            }
-            else
-            {
-                std::vector<MyMesh*> myMeshesToMerge;
-                myMeshesToMerge.push_back(m_myMeshes[meshInfos[j].meshIdx]);
-                m_materialMeshMap.insert(make_pair(material, myMeshesToMerge));
-            }
+            m_materialMeshMap.at(*m_meshInfos[i].material).push_back(m_meshInfos[i].myMesh);
         }
-	}
+        else
+        {
+            std::vector<MyMesh*> myMeshesToMerge;
+            myMeshesToMerge.push_back(m_meshInfos[i].myMesh);
+            m_materialMeshMap.insert(make_pair(*m_meshInfos[i].material, myMeshesToMerge));
+        }
+    }
 
     std::unordered_map<tinygltf::Material, std::vector<MyMesh*>, material_hash_fn, material_equal_fn>::iterator it;
     for (it = m_materialMeshMap.begin(); it != m_materialMeshMap.end(); ++it)
@@ -190,7 +169,7 @@ void MergeMesh::DoMerge()
     }
 }
 
-void MergeMesh::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes)
+void MeshOptimizer::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes)
 {
     MyMesh* newMesh = new MyMesh();
 
@@ -281,22 +260,23 @@ void MergeMesh::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes)
     }
 }
 
-void MergeMesh::mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> myMeshes)
+void MeshOptimizer::mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> myMeshes)
 {
-    m_totalVertex = 0;
-    m_totalFace = 0;
+    int totalVertex = 0;
+    int totalFace = 0;
     std::vector<MyMesh*> meshesToMerge;
     for (int i = 0; i < myMeshes.size(); ++i)
     {
         MyMesh* myMesh = myMeshes[i];
-        if (m_totalVertex + myMesh->vn > 65536 || (m_totalVertex + myMesh->vn < 65536 && i == myMeshes.size() - 1))
+        if (totalVertex + myMesh->vn > 65536 || (totalVertex + myMesh->vn < 65536 && i == myMeshes.size() - 1))
         {
-            if (m_totalVertex + myMesh->vn < 65536 && i == myMeshes.size() - 1)
+            if (totalVertex + myMesh->vn < 65536 && i == myMeshes.size() - 1)
             {
                 meshesToMerge.push_back(myMesh);
-                m_totalVertex += myMesh->vn;
-                m_totalFace += myMesh->fn;
+                totalVertex += myMesh->vn;
+                totalFace += myMesh->fn;
             }
+            
             // add mesh node
             Node node;
             Mesh newMesh;
@@ -321,7 +301,7 @@ void MergeMesh::mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> my
     }
 }
 
-int MergeMesh::addMesh(int materialIdx, MyMesh* myMesh)
+int MeshOptimizer::addMesh(int materialIdx, MyMesh* myMesh)
 {
     Mesh newMesh;
     //newMesh.name = mesh->name;
@@ -355,7 +335,7 @@ int MergeMesh::addMesh(int materialIdx, MyMesh* myMesh)
     m_pNewModel->meshes.push_back(newMesh);
     return m_pNewModel->meshes.size() - 1;
 }
-void MergeMesh::addPrimitive(Primitive* primitive)
+void MeshOptimizer::addPrimitive(Primitive* primitive)
 {
     int positionAccessorIdx = addAccessor(POSITION);
     int normalAccessorIdx = addAccessor(NORMAL);
@@ -370,7 +350,7 @@ void MergeMesh::addPrimitive(Primitive* primitive)
     primitive->indices = indicesAccessorIdx;
 }
 
-int MergeMesh::addAccessor(AccessorType type)
+int MeshOptimizer::addAccessor(AccessorType type)
 {
     Accessor newAccessor;
     switch (type)
@@ -426,7 +406,7 @@ int MergeMesh::addAccessor(AccessorType type)
     return m_pNewModel->accessors.size() - 1;
 }
 
-int MergeMesh::addBufferView(AccessorType type, size_t& byteOffset)
+int MeshOptimizer::addBufferView(AccessorType type, size_t& byteOffset)
 {
     // FIXME: We have not consider the uv coordinates yet.
     // And we only have one .bin file currently.
@@ -456,7 +436,7 @@ int MergeMesh::addBufferView(AccessorType type, size_t& byteOffset)
     }
 }
 
-int MergeMesh::addBuffer(AccessorType type)
+int MeshOptimizer::addBuffer(AccessorType type)
 {
     int byteLength = 0;
     uint32_t index = 0;

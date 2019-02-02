@@ -40,7 +40,7 @@ TileInfo* SpatialTree::GetTilesetInfo()
         {
             TileInfo* tileInfo = new TileInfo;
             tileInfo->boundingBox = m_pTileRoot->boundingBox;
-            tileInfo->nodes = m_pTileRoot->nodes;
+            tileInfo->myMeshInfos = m_pTileRoot->myMeshInfos;
             tileInfo->children.push_back(m_pTileRoot);
             m_pTileRoot = tileInfo;
         }
@@ -61,6 +61,12 @@ void SpatialTree::recomputeTileBox(TileInfo* parent)
     for (int i = 0; i < parent->myMeshInfos.size(); ++i)
     {
         parent->boundingBox->Add(parent->myMeshInfos[i].myMesh->bbox);
+    }
+
+    // Clear vector to save memory, but I don't think it neccessary;
+    if (parent->children.size() > 0)
+    {
+        parent->myMeshInfos.clear();
     }
 }
 

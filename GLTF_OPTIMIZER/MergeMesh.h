@@ -86,23 +86,23 @@ struct material_equal_fn {
     }
 };
 
-class MergeMesh
+class MeshOptimizer
 {
 public:
-	MergeMesh(tinygltf::Model* model, tinygltf::Model* newModel, std::vector<MyMesh*> myMeshes, std::vector<int> nodesToMerge, std::string bufferName);
-	~MergeMesh();
+	MeshOptimizer(tinygltf::Model* model, tinygltf::Model* newModel, std::vector<MyMeshInfo> meshInfos, std::string bufferName);
+	~MeshOptimizer();
 
 	void DoMerge();
     float DoDecimation(float targetPercetage);
     void ConstructNewModel();
-private :
+private:
     void mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> meshes);
-    void MergeMesh::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes);
+    void MeshOptimizer::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes);
 
-    int MergeMesh::addMesh(int materialIdx, MyMesh* myMesh);
-    void MergeMesh::addPrimitive(tinygltf::Primitive* primitive);
-    int MergeMesh::addAccessor(AccessorType type);
-    int MergeMesh::addBufferView(AccessorType type, size_t& byteOffset);
+    int MeshOptimizer::addMesh(int materialIdx, MyMesh* myMesh);
+    void MeshOptimizer::addPrimitive(tinygltf::Primitive* primitive);
+    int MeshOptimizer::addAccessor(AccessorType type);
+    int MeshOptimizer::addBufferView(AccessorType type, size_t& byteOffset);
     int addBuffer(AccessorType type);
 private:
 	tinygltf::Model* m_pModel;
@@ -126,6 +126,7 @@ private:
     int m_totalFace;
 
     MyMesh* m_currentMesh;
+    std::vector<MyMeshInfo> m_meshInfos;
     std::unordered_map<MyMesh*, Matrix44f> m_meshMatrixMap;
 
     TriEdgeCollapseQuadricParameter* m_pParams;

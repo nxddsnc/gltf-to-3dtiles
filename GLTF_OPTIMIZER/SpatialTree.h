@@ -51,12 +51,11 @@ private:
     int m_currentDepth;
     int m_treeDepth;
     TileInfo* m_pTileRoot;
-    Box3f getNodeBBox(tinygltf::Node* node);
 
     void deleteMyTreeNode(MyTreeNode* node);
     void deleteTileInfo(TileInfo* tileInfo);
     void recomputeTileBox(TileInfo* parent);
 private:
-    void splitTreeNode(MyTreeNode* father, TileInfo* parentTile);
+    void splitTreeNode(TileInfo* parentTile);
 };
 
