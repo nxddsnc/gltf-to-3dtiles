@@ -9,7 +9,6 @@ LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinyg
 {
     m_pModel = model;
     m_myMeshes = myMeshes;
-
     m_pTinyGTLF = tinyGLTF;
     m_currentTileLevel = 0;
     m_batchLegnthsJson = nlohmann::json({});
@@ -132,7 +131,6 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
         traverseExportTile(tileInfo->children[i]);
     }
 
-
     char bufferName[1024];
     int fileIdx = 0;
     if (m_levelAccumMap.count(tileInfo->level) > 0)
@@ -148,6 +146,8 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     sprintf(bufferName, "%d-%d.bin", tileInfo->level, fileIdx);
 
     Model* pNewModel = new Model;
+
+    getMeshIdxs(tileInfo->nodes);
     MergeMesh mergeMesh = MergeMesh(m_pModel, pNewModel, m_myMeshes, tileInfo->nodes, bufferName);
     mergeMesh.DoMerge();
     tileInfo->geometryError = mergeMesh.DoDecimation(pow(0.5, g_settings.tileLevel - tileInfo->level));

@@ -112,11 +112,9 @@ Box3f SpatialTree::getNodeBBox(Node* node)
             int row = k / 4;
             int col = k % 4;
             matrixValues[k] = (float)node->matrix[col * 4 + row];
-            //matrixValues[k] = (float)node->matrix[k];
         }
         result.Add(matrixValues, temp);
     }
-
 
     return result;
 }
@@ -156,7 +154,6 @@ void SpatialTree::Initialize()
 void SpatialTree::splitTreeNode(MyTreeNode* father, TileInfo* parentTile)
 {
     parentTile->boundingBox = father->boundingBox;
-    parentTile->nodes = father->nodes;
 
     if (m_currentDepth > m_treeDepth) 
     {
@@ -232,6 +229,18 @@ void SpatialTree::splitTreeNode(MyTreeNode* father, TileInfo* parentTile)
         parentTile->children.push_back(pRightTile);
         splitTreeNode(pRight, pRightTile);
         father->right = pRight;
+    }
+
+    if (pLeft == NULL && pRight == NULL) // if it is a leaf node, the insert material, mesh to meshInfos
+    {
+        for (int i = 0; i < father->nodes.size(); ++i)
+        {
+            int nodeIdx = father->nodes.[i];
+            MyMeshInfo* myMeshInfo = new MyMeshInfo;
+            myMeshInfo->material = m_pModel->materials[m_pModel->nodes[nodeIdx]];
+            parentTile->myMeshInfos
+        }
+
     }
 
     m_currentDepth--;

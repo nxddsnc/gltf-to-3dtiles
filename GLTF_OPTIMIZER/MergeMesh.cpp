@@ -11,7 +11,7 @@ MergeMesh::MergeMesh(tinygltf::Model* model, tinygltf::Model* newModel, std::vec
 	m_pModel = model;
     m_pNewModel = newModel;
 	m_myMeshes = myMeshes;
-    m_nodesToMerge = nodesToMerge;
+    m_nodesToMerge = nodesToMerge; 
     m_currentMeshIdx = 0;
 
     m_pParams = new TriEdgeCollapseQuadricParameter();
@@ -69,7 +69,6 @@ void MergeMesh::ConstructNewModel()
         m_pNewModel->bufferViews.push_back(batchIdArrayBufferView);
         m_pNewModel->bufferViews.push_back(elementArraybufferView);
     }
-
 
     Node root;
     root.name = "scene_root";

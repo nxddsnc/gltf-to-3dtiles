@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
 
             float nodeId = i;//  atoi(node->name.c_str());
 			// Write the batchIds into vertex color component in little endian.
-
+            // TODO: Check out what happens when two vertices merged into one.
             vector<MyVertex>::iterator it;
             unsigned char* batchId = (unsigned char*)&nodeId;
             for (it = mesh->vert.begin(); it != mesh->vert.end(); ++it)
