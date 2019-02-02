@@ -3,7 +3,6 @@
 #include <unordered_map>
 #include <map>
 #include "tiny_gltf.h"
-#include "GltfUtils.h"
 #include "MyMesh.h"
 #define MATERIAL_EPS 0.01
 #define MIN_FACE_NUM 10 // If face number is less then this, don't decimate then. 
@@ -96,7 +95,7 @@ public:
     float DoDecimation(float targetPercetage);
     void ConstructNewModel();
 private:
-    void mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> meshes);
+    void mergeSameMaterialMeshes(tinygltf::Material* material, std::vector<MyMesh*> meshes);
     void MeshOptimizer::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes);
 
     int MeshOptimizer::addMesh(int materialIdx, MyMesh* myMesh);
@@ -127,6 +126,7 @@ private:
 
     MyMesh* m_currentMesh;
     std::vector<MyMeshInfo> m_meshInfos;
+	std::vector<MyMeshInfo> m_mergeMeshInfos;
     std::unordered_map<MyMesh*, Matrix44f> m_meshMatrixMap;
 
     TriEdgeCollapseQuadricParameter* m_pParams;

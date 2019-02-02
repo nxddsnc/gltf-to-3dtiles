@@ -2,6 +2,7 @@
 #include "MyMesh.h"
 #include <algorithm>
 #include "vcg/complex/algorithms/clean.h"
+#include "utils.h"
 using namespace tinygltf;
 using namespace std;
 
@@ -21,14 +22,14 @@ MeshOptimizer::MeshOptimizer(tinygltf::Model* model, tinygltf::Model* newModel, 
 
 MeshOptimizer::~MeshOptimizer()
 {
-    std::unordered_map<int, std::vector<MyMesh*>>::iterator it;
-    for (it = m_materialNewMeshesMap.begin(); it != m_materialNewMeshesMap.end(); ++it)
-    {
-        for (int i = 0; i < it->second.size(); ++i)
-        {
-            delete it->second[i];
-        }
-    }
+	for (int i = 0; i < m_mergeMeshInfos.size(); ++i)
+	{
+		if (m_mergeMeshInfos[i].myMesh != NULL)
+		{
+			delete m_mergeMeshInfos[i].myMesh;
+			m_mergeMeshInfos[i].myMesh = NULL;
+		}
+	}
     delete m_pParams;
 }
 
@@ -165,7 +166,7 @@ void MeshOptimizer::DoMerge()
 
         std::sort(myMeshes.begin(), myMeshes.end(), mesh_compare_fn());
 
-        mergeSameMaterialMeshes(m_pNewModel->materials.size() - 1, myMeshes);
+        mergeSameMaterialMeshes((Material*)&(it->first), myMeshes);
     }
 }
 
@@ -260,44 +261,36 @@ void MeshOptimizer::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes)
     }
 }
 
-void MeshOptimizer::mergeSameMaterialMeshes(int materialIdx, std::vector<MyMesh*> myMeshes)
+void MeshOptimizer::mergeSameMaterialMeshes(Material* material, std::vector<MyMesh*> myMeshes)
 {
     int totalVertex = 0;
     int totalFace = 0;
     std::vector<MyMesh*> meshesToMerge;
+	MyMesh* mergedMesh = new MyMesh();
     for (int i = 0; i < myMeshes.size(); ++i)
     {
         MyMesh* myMesh = myMeshes[i];
+		// FIXME: Maybe not neccessary to limit the vertex number since we will do decimation later anyway.
         if (totalVertex + myMesh->vn > 65536 || (totalVertex + myMesh->vn < 65536 && i == myMeshes.size() - 1))
         {
             if (totalVertex + myMesh->vn < 65536 && i == myMeshes.size() - 1)
             {
-                meshesToMerge.push_back(myMesh);
+				ConcatMyMesh(mergedMesh, myMesh);
                 totalVertex += myMesh->vn;
                 totalFace += myMesh->fn;
-            }
-            
-            // add mesh node
-            Node node;
-            Mesh newMesh;
-            char meshName[1024];
-            sprintf(meshName, "%d", m_currentMeshIdx);
-            node.name = string(meshName);
-            newMesh.name = string(meshName);
-            
-            Primitive newPrimitive;
-            newPrimitive.mode = 4; // currently only support triangle mesh.
-            newPrimitive.material = materialIdx;
-            m_currentMeshes = meshesToMerge;
-            addPrimitive(&newPrimitive);
-            newMesh.primitives.push_back(newPrimitive);
-
-            createMyMesh(materialIdx, meshesToMerge);
+			}
+			MyMeshInfo meshInfo;
+			meshInfo.material = material;
+			meshInfo.myMesh = mergedMesh;
+			m_mergeMeshInfos.push_back(meshInfo);
+			totalVertex = 0;
+			totalFace = 0;
         }
 
-        meshesToMerge.push_back(myMesh);
-        m_totalVertex += myMesh->vn;
-        m_totalFace += myMesh->fn;
+		ConcatMyMesh(mergedMesh, myMesh);
+
+        totalVertex += myMesh->vn;
+		totalFace += myMesh->fn;
     }
 }
 
