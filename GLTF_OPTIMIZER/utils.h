@@ -2,6 +2,7 @@
 #include "tiny_gltf.h"
 #include "vcg\math\matrix44.h"
 #include "MyMesh.h"
+#include <unordered_map>
 using namespace vcg;
 
 // TODO: Add a cpp file

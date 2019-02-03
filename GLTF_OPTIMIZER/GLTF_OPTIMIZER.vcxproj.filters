@@ -62,7 +62,7 @@
     <ClInclude Include="MergeMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GltfUtils.h">
+    <ClInclude Include="utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

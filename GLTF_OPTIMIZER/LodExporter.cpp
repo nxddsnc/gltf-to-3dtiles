@@ -175,7 +175,7 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
         }
         else
         {
-            printf("gltf write error\n");= tileInfo->nodes.size();
+            printf("gltf write error\n");
         }
     }
     else

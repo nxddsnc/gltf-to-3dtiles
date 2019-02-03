@@ -13,14 +13,6 @@
 //	class Model;
 //}
 
-enum AccessorType
-{
-    POSITION,
-    NORMAL,
-    UV,
-    INDEX,
-    BATCH_ID
-};
 // If the hash compare goes slow, optimize this function.
 struct material_hash_fn {
     unsigned long operator()(const tinygltf::Material& material) const {
@@ -88,46 +80,18 @@ struct material_equal_fn {
 class MeshOptimizer
 {
 public:
-	MeshOptimizer(tinygltf::Model* model, tinygltf::Model* newModel, std::vector<MyMeshInfo> meshInfos, std::string bufferName);
+	MeshOptimizer(std::vector<MyMeshInfo> meshInfos);
 	~MeshOptimizer();
 
 	void DoMerge();
     float DoDecimation(float targetPercetage);
-    void ConstructNewModel();
 private:
     void mergeSameMaterialMeshes(tinygltf::Material* material, std::vector<MyMesh*> meshes);
-    void MeshOptimizer::createMyMesh(int materialIdx, std::vector<MyMesh*> myMeshes);
-
-    int MeshOptimizer::addMesh(int materialIdx, MyMesh* myMesh);
-    void MeshOptimizer::addPrimitive(tinygltf::Primitive* primitive);
-    int MeshOptimizer::addAccessor(AccessorType type);
-    int MeshOptimizer::addBufferView(AccessorType type, size_t& byteOffset);
-    int addBuffer(AccessorType type);
 private:
-	tinygltf::Model* m_pModel;
-    tinygltf::Model* m_pNewModel;
-	std::vector<MyMesh*> m_myMeshes;
-    std::unordered_map<int, std::vector<MyMesh*>> m_materialNewMeshesMap;
-    std::vector<int> m_nodesToMerge;
-    std::string m_bufferName;
     std::unordered_map<tinygltf::Material, std::vector<MyMesh*>, material_hash_fn, material_equal_fn> m_materialMeshMap;
 
-    std::unordered_map<MyVertex*, uint32_t> m_vertexUintMap;
-    std::unordered_map<MyVertex*, uint16_t> m_vertexUshortMap;
-    std::vector<unsigned char> m_currentAttributeBuffer;
-    std::vector<unsigned char> m_currentBatchIdBuffer;
-    std::vector<unsigned char> m_currentIndexBuffer;
-    float m_positionMax[3];
-    float m_positionMin[3];
-    int m_currentMeshIdx;
-
-    int m_totalVertex;
-    int m_totalFace;
-
-    MyMesh* m_currentMesh;
     std::vector<MyMeshInfo> m_meshInfos;
 	std::vector<MyMeshInfo> m_mergeMeshInfos;
-    std::unordered_map<MyMesh*, Matrix44f> m_meshMatrixMap;
 
     TriEdgeCollapseQuadricParameter* m_pParams;
 };
