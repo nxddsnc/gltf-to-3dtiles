@@ -3,7 +3,6 @@
 #include <unordered_map>
 #include <map>
 #include "vcg/space//box3.h"
-#include "tiny_gltf.h"
 #include "MyMesh.h"
 #define MIN_TREE_NODE 8
 #define MAX_DEPTH 4
@@ -29,7 +28,8 @@ public:
 
 namespace tinygltf
 {
-    class Node;
+    struct Node;
+	struct Model;
 }
 
 class MyMesh;

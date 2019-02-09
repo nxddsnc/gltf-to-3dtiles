@@ -2,8 +2,13 @@
 #include "MyMesh.h"
 #include <vector>
 #include <unordered_map>
-#include "tiny_gltf.h"
 
+namespace tinygltf
+{
+	class Model;
+	class Material;
+	class Primitive;
+}
 enum AccessorType
 {
 	POSITION,
@@ -19,6 +24,7 @@ public:
 	GltfExporter(std::vector<MyMeshInfo> myMeshInfos, std::string bufferName);
 	~GltfExporter();
 	void ConstructNewModel();
+	tinygltf::Model* GetNewModel() { return m_pNewModel; }
 private:
 	int addMesh(tinygltf::Material* material, MyMesh* myMesh);
 	void addPrimitive(tinygltf::Primitive* primitive);

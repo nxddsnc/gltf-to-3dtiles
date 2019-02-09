@@ -1,5 +1,6 @@
 #include "SpatialTree.h"
 #include "globals.h"
+#include "tiny_gltf.h"
 using namespace tinygltf;
 using namespace std;
 using namespace vcg;
@@ -165,9 +166,8 @@ void SpatialTree::splitTreeNode(TileInfo* parentTile)
     }
     else
     {
-        TileInfo* pLeftTile = new TileInfo;
-        parentTile->children.push_back(pLeftTile);
-        splitTreeNode(pLeftTile);
+        parentTile->children.push_back(pLeft);
+        splitTreeNode(pLeft);
         parentTile->children.push_back(pLeft);
     }
 
@@ -179,9 +179,8 @@ void SpatialTree::splitTreeNode(TileInfo* parentTile)
     }
     else
     {
-        TileInfo* pRightTile = new TileInfo;
-        parentTile->children.push_back(pRightTile);
-        splitTreeNode(pRightTile);
+        parentTile->children.push_back(pRight);
+        splitTreeNode(pRight);
         parentTile->children.push_back(pRight);
     }
 

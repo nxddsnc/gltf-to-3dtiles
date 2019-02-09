@@ -1,14 +1,16 @@
 #include "LodExporter.h"
-#include "tiny_gltf.h"
 #include "globals.h"
-#include "MergeMesh.h"
 #include "vcg\complex\algorithms\clean.h"
+#include "gltfExporter.h"
+#include "MergeMesh.h"
+#include "tiny_gltf.h"
+#include <fstream>
+#include <windows.h>
 using namespace tinygltf;
 
 LodExporter::LodExporter(tinygltf::Model* model, vector<MyMesh*> myMeshes, tinygltf::TinyGLTF* tinyGLTF)
 {
     m_pModel = model;
-    m_myMeshes = myMeshes;
     m_pTinyGTLF = tinyGLTF;
     m_currentTileLevel = 0;
     m_batchLegnthsJson = nlohmann::json({});
@@ -146,12 +148,13 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
     }
     sprintf(bufferName, "%d-%d.bin", tileInfo->level, fileIdx);
 
-    Model* pNewModel = new Model;
-
-    getMeshIdxs(tileInfo->nodes);
-    MeshOptimizer meshOptimizer = MeshOptimizer(m_pModel, pNewModel, tileInfo, bufferName);
+    MeshOptimizer meshOptimizer = MeshOptimizer(tileInfo->myMeshInfos);
     meshOptimizer.DoMerge();
-
+	meshOptimizer.DoDecimation(std::pow(0.5, g_settings.tileLevel - m_currentTileLevel));
+	
+	GltfExporter gltfExporter = GltfExporter(meshOptimizer.GetMergedMeshInfos(), bufferName);
+	gltfExporter.ConstructNewModel();
+	Model* pNewModel = gltfExporter.GetNewModel();
     // output
     char contentUri[1024];
     sprintf(contentUri, "%d/%d-%d.b3dm", tileInfo->level, tileInfo->level, fileIdx);
@@ -167,7 +170,7 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
 		}
 		else
 		{
-			bSuccess = m_pTinyGTLF->WriteGltfSceneToFile(pNewModel, outputFilePath);
+			bSuccess = m_pTinyGTLF->WriteGltfSceneToFile(pNewModel, outputFilePath, false, false, true, false);
 		}
         if (bSuccess)
         {

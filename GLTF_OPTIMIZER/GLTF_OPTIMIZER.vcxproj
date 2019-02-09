@@ -153,13 +153,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\vcglib\wrap\ply\plylib.cpp" />
+    <ClCompile Include="gltfExporter.cpp" />
     <ClCompile Include="LodExporter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MergeMesh.cpp" />
     <ClCompile Include="SpatialTree.cpp" />
+    <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="globals.h" />
+    <ClInclude Include="gltfExporter.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="LodExporter.h" />
     <ClInclude Include="MergeMesh.h" />

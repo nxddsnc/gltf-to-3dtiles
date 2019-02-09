@@ -1,11 +1,15 @@
 #pragma once
+// Define these only in *one* .cc file.
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "SpatialTree.h"
 #include "MyMesh.h"
 #include <stdint.h>
 #include "tiny_gltf.h"
 #include "LodExporter.h"
 #include "globals.h"
-#include "GltfUtils.h"
+#include "utils.h"
 #include <ctime>
 #define TILE_LEVEL 8
 using namespace tinygltf;
@@ -179,30 +183,33 @@ int main(int argc, char *argv[])
         unsigned char* batchId = (unsigned char*)&nodeId;
         for (int j = 0; j < meshInfos.size(); j++)
         {
-            Matrix44f matrix = *meshInfos[j].matrix;
-            Matrix33f normalMatrix = Matrix33f(*meshInfos[j].matrix, 3);
-            normalMatrix = Inverse(normalMatrix);
-            MyMesh* mesh = myMeshes[meshInfos[j].meshIdx];
-            vector<MyVertex>::iterator it;
-            for (it = mesh->vert.begin(); it != mesh->vert.end(); ++it)
-            {
-                it->C()[0] = batchId[0];
-                it->C()[1] = batchId[1];
-                it->C()[2] = batchId[2];
-                it->C()[3] = batchId[3];
+			if (meshInfos[j].matrix != NULL)
+			{
+				Matrix44f matrix = *meshInfos[j].matrix;
+				Matrix33f normalMatrix = Matrix33f(*meshInfos[j].matrix, 3);
+				normalMatrix = Inverse(normalMatrix);
+				MyMesh* mesh = myMeshes[meshInfos[j].meshIdx];
+				vector<MyVertex>::iterator it;
+				for (it = mesh->vert.begin(); it != mesh->vert.end(); ++it)
+				{
+					it->C()[0] = batchId[0];
+					it->C()[1] = batchId[1];
+					it->C()[2] = batchId[2];
+					it->C()[3] = batchId[3];
 
-                tempPt[0] = it->P()[0];
-                tempPt[1] = it->P()[1];
-                tempPt[2] = it->P()[2];
-                tempPt[3] = 1;
-                tempPt = matrix * tempPt;
-                it->P()[0] = tempPt[0];
-                it->P()[1] = tempPt[1];
-                it->P()[2] = tempPt[2];
+					tempPt[0] = it->P()[0];
+					tempPt[1] = it->P()[1];
+					tempPt[2] = it->P()[2];
+					tempPt[3] = 1;
+					tempPt = matrix * tempPt;
+					it->P()[0] = tempPt[0];
+					it->P()[1] = tempPt[1];
+					it->P()[2] = tempPt[2];
 
-                it->N() = normalMatrix * it->N();
-            }
-            vcg::tri::UpdateBounding<MyMesh>::Box(*mesh);
+					it->N() = normalMatrix * it->N();
+				}
+				vcg::tri::UpdateBounding<MyMesh>::Box(*mesh);
+			}
         }
     }
 

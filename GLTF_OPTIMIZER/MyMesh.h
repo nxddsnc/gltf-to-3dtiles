@@ -1,8 +1,4 @@
 #pragma once
-// Define these only in *one* .cc file.
-#define TINYGLTF_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 // #define TINYGLTF_NOEXCEPTION // optional. disable exception handling.
 #include "vcg/complex/complex.h"
 #include "wrap/io_trimesh/export_ply.h"
@@ -12,6 +8,10 @@
 using namespace vcg;
 using namespace tri;
 using namespace std;
+namespace tinygltf
+{
+	class Material;
+}
 // The class prototypes.
 class MyVertex;
 class MyEdge;

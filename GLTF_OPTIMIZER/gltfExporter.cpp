@@ -1,4 +1,5 @@
 #include "GltfExporter.h"
+#include "tiny_gltf.h"
 using namespace std;
 using namespace tinygltf;
 

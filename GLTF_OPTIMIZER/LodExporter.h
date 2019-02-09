@@ -32,7 +32,7 @@ private:
     nlohmann::json traverseExportTileSetJson(TileInfo* tileInfo);
 private:
     tinygltf::Model* m_pModel;
-    std::vector<MyMesh*> m_myMeshes;
+	std::vector<MyMeshInfo> m_currentMeshInfos;
     TileInfo* m_pTileInfo;
     int m_currentTileLevel;
     tinygltf::TinyGLTF* m_pTinyGTLF;
