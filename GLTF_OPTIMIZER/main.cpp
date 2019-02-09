@@ -106,10 +106,6 @@ int main(int argc, char *argv[])
         MyMesh myMesh;
 
         Mesh mesh = model->meshes[i];
-        if (strcmp(mesh.name.c_str(), "374") != 0)
-        {
-            continue;
-        }
 
         vcg::tri::Clean<MyMesh>::RemoveUnreferencedVertex(myMesh);
 
