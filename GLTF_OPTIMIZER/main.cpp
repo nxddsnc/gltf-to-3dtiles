@@ -167,12 +167,7 @@ int main(int argc, char *argv[])
             (*fi).V(2) = index[indices[j * 3 + 2]];
             ++fi;
         }
-
-
-
     }
-
-
 
 	/**********************   decimation    *******************************/
 	TriEdgeCollapseQuadricParameter qparams;
@@ -200,13 +195,13 @@ int main(int argc, char *argv[])
 	//qparams.BoundaryQuadricWeight = atof(argv[i] + 2);
 	//qparams.QuadricEpsilon = atof(argv[i] + 2);
 
-	float FinalSize = 0.5 * 0.5 * 0.5 * 0.5 * faceNum;
+	float FinalSize = 0.5 * 0.5 * mergedMesh.fn;
 	bool CleaningFlag = true;
 
-	vcg::tri::UpdateBounding<MyMesh>::Box(myMesh);
+	vcg::tri::UpdateBounding<MyMesh>::Box(mergedMesh);
 
 	// decimator initialization
-	vcg::LocalOptimization<MyMesh> DeciSession(myMesh, &qparams);
+	vcg::LocalOptimization<MyMesh> DeciSession(mergedMesh, &qparams);
 
 	int t1 = clock();
 	DeciSession.Init<MyTriEdgeCollapse>();
@@ -222,12 +217,12 @@ int main(int argc, char *argv[])
 	do {
 		DeciSession.DoOptimization();
 		counter++;
-	} while (myMesh.fn > FinalSize && counter < 100);
+	} while (mergedMesh.fn > FinalSize && counter < 100);
 	//DeciSession.DoOptimization();
 	//while (DeciSession.DoOptimization() && myMesh.fn>FinalSize && DeciSession.currMetric < TargetError)
 	//    printf("Current Mesh size %7i heap sz %9i err %9g \n", myMesh.fn, int(DeciSession.h.size()), DeciSession.currMetric);
 
-	printf("mesh  %d %d Error %g \n", myMesh.vn, myMesh.fn, DeciSession.currMetric);
+	printf("mesh  %d %d Error %g \n", mergedMesh.vn, mergedMesh.fn, DeciSession.currMetric);
 	//printf("\nCompleted in (%5.3f+%5.3f) sec\n", float(t2 - t1) / CLOCKS_PER_SEC, float(t3 - t2) / CLOCKS_PER_SEC);
 
 	char testOutputPath[1024];
