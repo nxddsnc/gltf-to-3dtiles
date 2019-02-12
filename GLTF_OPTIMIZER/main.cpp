@@ -109,8 +109,6 @@ int main(int argc, char *argv[])
 
         Mesh mesh = model->meshes[i];
 
-        vcg::tri::Clean<MyMesh>::RemoveUnreferencedVertex(myMesh);
-
         int positionAccessorIdx = mesh.primitives[0].attributes.at("POSITION");
         int normalAccessorIdx = mesh.primitives[0].attributes.at("NORMAL");
         int indicesAccessorIdx = mesh.primitives[0].indices;
@@ -137,6 +135,8 @@ int main(int argc, char *argv[])
         std::vector<VertexPointer> index;
         VertexIterator vi = Allocator<MyMesh>::AddVertices(mergedMesh, positionAccessor.count);
         
+		index.resize(positionAccessor.count);
+
         for (int j = 0; j < positionAccessor.count; ++j)
         {
             (*vi).P()[0] = positions[j * 3 + 0];
@@ -149,13 +149,11 @@ int main(int argc, char *argv[])
 
             //(*vi).T().P().X() = va.u;
             //(*vi).T().P().Y() = va.v;
-            ++vi;
-        }
+        
+			index[j] = &*vi;
 
-        index.resize(positionAccessor.count);
-        vi = myMesh.vert.begin();
-        for (int j = 0; j < positionAccessor.count; ++j, ++vi)
-            index[j] = &*vi;
+			++vi;
+		}
 
         int faceNum = indicesAccessor.count / 3;
         FaceIterator fi = Allocator<MyMesh>::AddFaces(mergedMesh, faceNum);
