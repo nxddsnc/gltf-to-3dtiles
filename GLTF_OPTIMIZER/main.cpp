@@ -173,6 +173,8 @@ int main(int argc, char *argv[])
 	qparams.PreserveBoundary = false;
 	qparams.PreserveTopology = false;
 	qparams.OptimalPlacement = false;
+	qparams.QuadricEpsilon = 100;
+	qparams.ScaleIndependent = false;
 	//double TargetError = std::numeric_limits<double >::max();
 	//double TargetError = 0.5;
 	//qparams.QualityCheck = true;

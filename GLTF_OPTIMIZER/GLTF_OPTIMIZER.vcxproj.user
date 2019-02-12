@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-i "../data/test.gltf" -o "../data/output"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-i "D:\Mark\mark1\GLTF-Optimizer\data\81-cubes-99.gltf" -o "D:\Mark\mark1\GLTF-Optimizer\data"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>
