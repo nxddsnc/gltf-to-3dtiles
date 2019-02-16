@@ -175,6 +175,8 @@ int main(int argc, char *argv[])
 	qparams.OptimalPlacement = false;
 	qparams.QuadricEpsilon = 100;
 	qparams.ScaleIndependent = false;
+	qparams.NormalCheck = true;
+	qparams.NormalThrRad = 0.1;
 	//double TargetError = std::numeric_limits<double >::max();
 	//double TargetError = 0.5;
 	//qparams.QualityCheck = true;
@@ -195,7 +197,7 @@ int main(int argc, char *argv[])
 	//qparams.BoundaryQuadricWeight = atof(argv[i] + 2);
 	//qparams.QuadricEpsilon = atof(argv[i] + 2);
 
-	float FinalSize = 0.5 * 0.5 * mergedMesh.fn;
+	float FinalSize = 4;
 	bool CleaningFlag = true;
 
 	vcg::tri::UpdateBounding<MyMesh>::Box(mergedMesh);
@@ -208,16 +210,17 @@ int main(int argc, char *argv[])
 	int t2 = clock();
 	printf("Initial Heap Size %i\n", int(DeciSession.h.size()));
 
-	DeciSession.SetTargetSimplices(FinalSize);
-	DeciSession.SetTimeBudget(0.5f);
-	DeciSession.SetTargetOperations(100000);
+	//DeciSession.SetTargetSimplices(FinalSize);
+	DeciSession.SetTargetVertices(6);
+	DeciSession.SetTimeBudget(5000000000.0f);
+	DeciSession.SetTargetOperations(100000000);
 	//if (TargetError< std::numeric_limits<float>::max()) DeciSession.SetTargetMetric(TargetError);
 
-	int counter = 0;
-	do {
+	//int counter = 0;
+	//do {
 		DeciSession.DoOptimization();
-		counter++;
-	} while (mergedMesh.fn > FinalSize && counter < 100);
+	//	counter++;
+	//} while (mergedMesh.fn > FinalSize && counter < 100);
 	//DeciSession.DoOptimization();
 	//while (DeciSession.DoOptimization() && myMesh.fn>FinalSize && DeciSession.currMetric < TargetError)
 	//    printf("Current Mesh size %7i heap sz %9i err %9g \n", myMesh.fn, int(DeciSession.h.size()), DeciSession.currMetric);
