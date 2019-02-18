@@ -174,9 +174,10 @@ int main(int argc, char *argv[])
 	qparams.PreserveTopology = false;
 	qparams.OptimalPlacement = false;
 	qparams.QuadricEpsilon = 100;
-	qparams.ScaleIndependent = false;
-	qparams.NormalCheck = true;
-	qparams.NormalThrRad = 0.1;
+	qparams.ScaleIndependent = true;
+	//qparams.NormalCheck = true;
+	//qparams.NormalThrRad = 0.1;
+    qparams.CollapseThr = 2.0;
 	//double TargetError = std::numeric_limits<double >::max();
 	//double TargetError = 0.5;
 	//qparams.QualityCheck = true;
@@ -211,7 +212,7 @@ int main(int argc, char *argv[])
 	int t2 = clock();
 	printf("Initial Heap Size %i\n", int(DeciSession.h.size()));
 
-	DeciSession.SetTargetSimplices(mergedMesh.fn * 0.5);
+	DeciSession.SetTargetSimplices(3);
 	//DeciSession.SetTargetVertices(6);
 	DeciSession.SetTimeBudget(5000000000.0f);
 	DeciSession.SetTargetOperations(100000000);
@@ -219,7 +220,7 @@ int main(int argc, char *argv[])
 
 	int counter = 0;
 	do {
-		DeciSession.DoOptimization(vertexPairCache);
+		DeciSession.DoOptimization(vertexPairCache); 
 		counter++;
 	} while (mergedMesh.fn > FinalSize && counter < 100);
 	//DeciSession.DoOptimization();

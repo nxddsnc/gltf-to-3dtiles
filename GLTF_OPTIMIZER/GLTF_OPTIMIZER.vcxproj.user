@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-i "D:\Mark\mark1\GLTF-Optimizer\data\81-cubes-99.gltf" -o "D:\Mark\mark1\GLTF-Optimizer\data"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-i "D:\Papers\Mesh simplication\vcg\GLTF_OPTIMIZER\data\2Plane.gltf" -o "D:\Mark\mark1\GLTF-Optimizer\data"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>
