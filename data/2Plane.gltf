@@ -1,0 +1,142 @@
+{
+  "accessors": [
+    {
+      "name": "Node-Mesh_0_positions",
+      "componentType": 5126,
+      "count": 8,
+      "min": [
+        35.945899963378906,
+        0,
+        -33.923500061035156
+      ],
+      "max": [
+        55.97669982910156,
+        10,
+        -33.90079879760742
+      ],
+      "type": "VEC3",
+      "bufferView": 0,
+      "byteOffset": 0
+    },
+    {
+      "name": "Node-Mesh_0_normals",
+      "componentType": 5126,
+      "count": 8,
+      "min": [
+        -0.6666666865348816,
+        -0.6666666865348816,
+        0.3333333432674408
+      ],
+      "max": [
+        0.8164966106414795,
+        0.6666666865348816,
+        0.8164966106414795
+      ],
+      "type": "VEC3",
+      "bufferView": 1,
+      "byteOffset": 0
+    },
+    {
+      "name": "Node-Mesh_0_indices",
+      "componentType": 5123,
+      "count": 12,
+      "min": [
+        0
+      ],
+      "max": [
+        7
+      ],
+      "type": "SCALAR",
+      "bufferView": 2,
+      "byteOffset": 0
+    }
+  ],
+  "asset": {
+    "generator": "obj2gltf",
+    "version": "2.0"
+  },
+  "buffers": [
+    {
+      "name": "2Plane",
+      "byteLength": 216,
+      "uri": "data:application/octet-stream;base64,msgPQgAAAABrmgfCmsg3QgAAAABrmgfCmsg3QgAAIEFrmgfCmsgPQgAAIEFrmgfCJOg3QgAAAACqsQfCJOhfQgAAAACqsQfCJOhfQgAAIEGqsQfCJOg3QgAAIEGqsQfCq6qqvquqKr+rqio/7AVRP+wF0b7sBdE+7AXRPuwF0T7sBVE/q6oqv6uqKj+rqqo+q6qqvquqKr+rqio/7AVRP+wF0b7sBdE+7AXRPuwF0T7sBVE/q6oqv6uqKj+rqqo+AAABAAIAAAACAAMABAAFAAYABAAGAAcA"
+    }
+  ],
+  "bufferViews": [
+    {
+      "name": "bufferView_0",
+      "buffer": 0,
+      "byteLength": 96,
+      "byteOffset": 0,
+      "byteStride": 12,
+      "target": 34962
+    },
+    {
+      "name": "bufferView_1",
+      "buffer": 0,
+      "byteLength": 96,
+      "byteOffset": 96,
+      "byteStride": 12,
+      "target": 34962
+    },
+    {
+      "name": "bufferView_2",
+      "buffer": 0,
+      "byteLength": 24,
+      "byteOffset": 192,
+      "target": 34963
+    }
+  ],
+  "materials": [
+    {
+      "name": "default",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.5,
+          0.5,
+          0.5,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 1
+      },
+      "emissiveFactor": [
+        0,
+        0,
+        0
+      ],
+      "alphaMode": "OPAQUE",
+      "doubleSided": false
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Node-Mesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "Node",
+      "mesh": 0
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ]
+}
