@@ -12,6 +12,7 @@
 #include <vcg/complex/algorithms/local_optimization/tri_edge_collapse_quadric.h>
 #include "tiny_gltf.h"
 #include <vcg/complex/algorithms/clean.h>
+#include <iostream>
 using namespace tinygltf;
 
 using namespace vcg;
@@ -200,6 +201,20 @@ int main(int argc, char *argv[])
 	//qparams.BoundaryQuadricWeight = atof(argv[i] + 2);
 	//qparams.QuadricEpsilon = atof(argv[i] + 2);
 
+		std::printf("merged mesh vertex number: %d\n", mergedMesh.vn);
+		std::printf("merged mesh face number: %d\n", mergedMesh.fn);
+
+		std::cout << "Please input vertex collapse threshold:";
+		std::cin >> qparams.CollapseThr;
+
+		std::cout << "Please input target vertex number(0 if you do not want to set target vertex number)£º";
+		int targetVertexNumber = 0;
+		std::cin >> targetVertexNumber;
+
+		std::cout << "Please input target face number(0 if you do not want to set target face number)£º";
+		int targetFaceNumber = 0;
+		std::cin >> targetFaceNumber;
+
 	//float FinalSize = 4;
 	bool CleaningFlag = true;
 
@@ -208,16 +223,17 @@ int main(int argc, char *argv[])
 	// decimator initialization
 	vcg::LocalOptimization<MyMesh> DeciSession(mergedMesh, &qparams);
 
-	int t1 = clock();
-	std::unordered_map<VertexType*, VertexType*> vertexPairCache;
+	
+	std::unordered_map<VertexType*, std::vector<VertexType*>> vertexPairCache;
 	DeciSession.Init<MyTriEdgeCollapse>(vertexPairCache);
-	int t2 = clock();
-	printf("Initial Heap Size %i\n", int(DeciSession.h.size())); 
 
 	//DeciSession.SetTargetSimplices(2);
 	//DeciSession.SetTargetVertices(24);
-  DeciSession.SetTargetVertices(mergedMesh.vn / 8);
-  //DeciSession.SetTargetSimplices(mergedMesh.fn * 0.9);
+  //DeciSession.SetTargetVertices(mergedMesh.vn / 8);
+	if (targetVertexNumber != 0)
+		DeciSession.SetTargetVertices(targetVertexNumber);
+	if (targetFaceNumber != 0)
+		DeciSession.SetTargetSimplices(targetFaceNumber);
 	DeciSession.SetTimeBudget(5000000000.0f);
 	DeciSession.SetTargetOperations(100000000);
 	//if (TargetError< std::numeric_limits<float>::max()) DeciSession.SetTargetMetric(TargetError);
@@ -231,12 +247,14 @@ int main(int argc, char *argv[])
 	//while (DeciSession.DoOptimization() && myMesh.fn>FinalSize && DeciSession.currMetric < TargetError)
 	//    printf("Current Mesh size %7i heap sz %9i err %9g \n", myMesh.fn, int(DeciSession.h.size()), DeciSession.currMetric);
 
-	printf("mesh  %d %d Error %g \n", mergedMesh.vn, mergedMesh.fn, DeciSession.currMetric);
+	//printf("mesh  %d %d Error %g \n", mergedMesh.vn, mergedMesh.fn, DeciSession.currMetric);
 	//printf("\nCompleted in (%5.3f+%5.3f) sec\n", float(t2 - t1) / CLOCKS_PER_SEC, float(t3 - t2) / CLOCKS_PER_SEC);
 
 	char testOutputPath[1024];
 	sprintf(testOutputPath, "../data/after.ply");
 	vcg::tri::io::ExporterPLY<MyMesh>::Save(mergedMesh, testOutputPath);
+	
+	std::cout << "done\n";
     // step0. Read gltf into vcglib mesh.
  
     // step1. Figure out the material with different ids and have the same value.
