@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
 	qparams.ScaleIndependent = true;
 	qparams.NormalCheck = true;
 	qparams.NormalThrRad = 0.0;
-  qparams.HardNormalCheck = true;
+  //qparams.HardNormalCheck = true;
     qparams.CollapseThr = 2.0;
     //qparams.QualityQuadric = false;
 	//double TargetError = std::numeric_limits<double >::max();
@@ -215,7 +215,9 @@ int main(int argc, char *argv[])
 	printf("Initial Heap Size %i\n", int(DeciSession.h.size())); 
 
 	//DeciSession.SetTargetSimplices(2);
-	DeciSession.SetTargetVertices(40);
+	//DeciSession.SetTargetVertices(24);
+  DeciSession.SetTargetVertices(mergedMesh.vn / 8);
+  //DeciSession.SetTargetSimplices(mergedMesh.fn * 0.9);
 	DeciSession.SetTimeBudget(5000000000.0f);
 	DeciSession.SetTargetOperations(100000000);
 	//if (TargetError< std::numeric_limits<float>::max()) DeciSession.SetTargetMetric(TargetError);
