@@ -210,6 +210,19 @@ int main(int argc, char *argv[])
 				}
 				vcg::tri::UpdateBounding<MyMesh>::Box(*mesh);
 			}
+            else
+            {
+                MyMesh* mesh = myMeshes[meshInfos[j].meshIdx];
+                vector<MyVertex>::iterator it;
+                for (it = mesh->vert.begin(); it != mesh->vert.end(); ++it)
+                {
+                    it->C()[0] = batchId[0];
+                    it->C()[1] = batchId[1];
+                    it->C()[2] = batchId[2];
+                    it->C()[3] = batchId[3];
+                }
+                vcg::tri::UpdateBounding<MyMesh>::Box(*mesh);
+            }
         }
     }
 

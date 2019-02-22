@@ -186,8 +186,6 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
         printf("cannot create output filepath\n");
     }
 
-    delete pNewModel;
-
     m_currentTileLevel--;
 }
 

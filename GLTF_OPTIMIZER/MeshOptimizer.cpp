@@ -4,6 +4,7 @@
 #include "vcg/complex/algorithms/clean.h"
 #include "utils.h"
 #include "tiny_gltf.h"
+#include <unordered_map>
 using namespace tinygltf;
 using namespace std;
 struct material_hash_fn {
@@ -112,7 +113,8 @@ float MeshOptimizer::DoDecimation(float targetPercentage)
 		MyMesh* myMesh = m_mergeMeshInfos[i].myMesh;
 		// decimator initialization
 		vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
-		deciSession.Init<MyTriEdgeCollapse>();
+        std::unordered_map<MyVertex*, vector<MyVertex*>> vertexPairCache;
+		deciSession.Init<MyTriEdgeCollapse>(vertexPairCache);
 		// FIXME: If the mesh bbox is large and it's face number is ralatively few, we should not do decimation.
 		uint32_t finalSize = myMesh->fn * targetPercentage;
 		finalSize = finalSize < MIN_FACE_NUM ? MIN_FACE_NUM : finalSize;
@@ -123,7 +125,7 @@ float MeshOptimizer::DoDecimation(float targetPercentage)
 		int currentTry = 0;
 		do
 		{
-			deciSession.DoOptimization();
+			deciSession.DoOptimization(vertexPairCache);
 			currentTry++;
 		} while (myMesh->fn > finalSize && currentTry < maxTry);
 
@@ -136,29 +138,32 @@ float MeshOptimizer::DoDecimation(float targetPercentage)
 
 void MeshOptimizer::DoMerge()
 {
-	std::unordered_map<tinygltf::Material, std::vector<MyMesh*>, material_hash_fn, material_equal_fn> m_materialMeshMap;
+	std::unordered_map<tinygltf::Material, MergeMeshInfo, material_hash_fn, material_equal_fn> materialMeshMap;
 	for (int i = 0; i < m_meshInfos.size(); ++i)
     {
-        if (m_materialMeshMap.count(*m_meshInfos[i].material) > 0)
+        if (materialMeshMap.count(*m_meshInfos[i].material) > 0)
         {
-            m_materialMeshMap.at(*m_meshInfos[i].material).push_back(m_meshInfos[i].myMesh);
+            materialMeshMap.at(*m_meshInfos[i].material).meshes.push_back(m_meshInfos[i].myMesh);
         }
         else
         {
             std::vector<MyMesh*> myMeshesToMerge;
             myMeshesToMerge.push_back(m_meshInfos[i].myMesh);
-            m_materialMeshMap.insert(make_pair(*m_meshInfos[i].material, myMeshesToMerge));
+            MergeMeshInfo mergeMeshInfo;
+            mergeMeshInfo.meshes = myMeshesToMerge;
+            mergeMeshInfo.material = m_meshInfos[i].material;
+            materialMeshMap.insert(make_pair(*m_meshInfos[i].material, mergeMeshInfo));
         }
     }
 
-    std::unordered_map<tinygltf::Material, std::vector<MyMesh*>, material_hash_fn, material_equal_fn>::iterator it;
-    for (it = m_materialMeshMap.begin(); it != m_materialMeshMap.end(); ++it)
+    std::unordered_map<tinygltf::Material, MergeMeshInfo, material_hash_fn, material_equal_fn>::iterator it;
+    for (it = materialMeshMap.begin(); it != materialMeshMap.end(); ++it)
     {
-        std::vector<MyMesh*> myMeshes = it->second;
+        std::vector<MyMesh*> myMeshes = it->second.meshes;
 
         std::sort(myMeshes.begin(), myMeshes.end(), mesh_compare_fn());
 
-        mergeSameMaterialMeshes((Material*)&(it->first), myMeshes);
+        mergeSameMaterialMeshes(it->second.material, myMeshes);
     }
 }
 

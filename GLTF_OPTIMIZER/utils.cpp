@@ -71,7 +71,12 @@ void ConcatMyMesh(MyMesh* dest, MyMesh* src)
 		// TODO: Add uv support.
 		//(*vi).T().P().X() = va.u;
 		//(*vi).T().P().Y() = va.v;
-		vertexMap.insert(make_pair(&(src->vert[j]), &*vi));
+
+        (*vi).C()[0] = src->vert[j].C()[0];
+        (*vi).C()[1] = src->vert[j].C()[1];
+        (*vi).C()[2] = src->vert[j].C()[2];
+        (*vi).C()[3] = src->vert[j].C()[3];
+        vertexMap.insert(make_pair(&(src->vert[j]), &*vi));
 
 		++vi;
 	}

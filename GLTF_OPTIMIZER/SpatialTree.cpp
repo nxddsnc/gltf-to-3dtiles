@@ -166,7 +166,6 @@ void SpatialTree::splitTreeNode(TileInfo* parentTile)
     }
     else
     {
-        parentTile->children.push_back(pLeft);
         splitTreeNode(pLeft);
         parentTile->children.push_back(pLeft);
     }
@@ -179,7 +178,6 @@ void SpatialTree::splitTreeNode(TileInfo* parentTile)
     }
     else
     {
-        parentTile->children.push_back(pRight);
         splitTreeNode(pRight);
         parentTile->children.push_back(pRight);
     }

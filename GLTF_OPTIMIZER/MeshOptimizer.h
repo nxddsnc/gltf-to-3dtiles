@@ -13,7 +13,11 @@
 //}
 
 // If the hash compare goes slow, optimize this function.
-
+struct MergeMeshInfo
+{
+    std::vector<MyMesh*> meshes;
+    tinygltf::Material* material;
+};
 class MeshOptimizer
 {
 public:

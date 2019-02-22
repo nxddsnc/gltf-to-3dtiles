@@ -47,12 +47,12 @@ void GltfExporter::ConstructNewModel()
         m_pNewModel->bufferViews.push_back(elementArraybufferView);
     }
 
-    Node root;
-    root.name = "scene_root";
-    m_pNewModel->nodes.push_back(root);
+    //Node root;
+    //root.name = "scene_root";
+    //m_pNewModel->nodes.push_back(root);
     Scene scene;
     scene.name = "scene";
-    scene.nodes.push_back(0);
+    //scene.nodes.push_back(0);
     m_pNewModel->scenes.push_back(scene);
     m_pNewModel->asset.version = "2.0";
     std::unordered_map<int, std::vector<MyMesh*>>::iterator it;
@@ -62,7 +62,12 @@ void GltfExporter::ConstructNewModel()
 	{	
 		MyMesh* myMesh = m_myMeshInfos[i].myMesh;
 		Material* material = m_myMeshInfos[i].material;
-		addMesh(material, myMesh);
+		int meshIdx = addMesh(material, myMesh);
+        Node node;
+        node.name = "test";
+        node.mesh = meshIdx;
+        m_pNewModel->nodes.push_back(node);
+        m_pNewModel->scenes[0].nodes.push_back(m_pNewModel->nodes.size() - 1);
 	}
 
     {
