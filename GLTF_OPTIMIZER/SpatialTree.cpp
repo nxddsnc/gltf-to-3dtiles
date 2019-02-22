@@ -109,6 +109,23 @@ void SpatialTree::Initialize()
     splitTreeNode(m_pTileRoot);
 }
 
+// FIXME: template?
+bool myCompareX(MyMeshInfo& a, MyMeshInfo& b)
+{
+    return a.myMesh->bbox.Center().V()[0] < b.myMesh->bbox.Center().V()[0];
+}
+
+bool myCompareY(MyMeshInfo& a, MyMeshInfo& b)
+{
+    return a.myMesh->bbox.Center().V()[1] < b.myMesh->bbox.Center().V()[1];
+}
+
+bool myCompareZ(MyMeshInfo& a, MyMeshInfo& b)
+{
+    return a.myMesh->bbox.Center().V()[2] < b.myMesh->bbox.Center().V()[2];
+}
+
+
 void SpatialTree::splitTreeNode(TileInfo* parentTile)
 {
     if (m_currentDepth > m_treeDepth) 
@@ -129,32 +146,63 @@ void SpatialTree::splitTreeNode(TileInfo* parentTile)
     pLeft->boundingBox = new Box3f(*parentTile->boundingBox);
     pRight->boundingBox  = new Box3f(*parentTile->boundingBox);
 
+    vector<MyMeshInfo> meshInfos = parentTile->myMeshInfos;
+    int totalFaceCount = 0;
+    int faceCount = 0;
+    int i;
+    for (i = 0; i < meshInfos.size(); ++i)
+    {
+        totalFaceCount += meshInfos[i].myMesh->fn;
+    }
     if (dim.X() > dim.Y() && dim.X() > dim.Z())
     {
         // Split X
-        pLeft->boundingBox->max.X() = pRight->boundingBox->min.X() = parentTile->boundingBox->Center().X();
+        sort(meshInfos.begin(), meshInfos.end(), myCompareX);
+        for (i = 0; i < meshInfos.size(); ++i)
+        {
+            faceCount += meshInfos[i].myMesh->fn;
+            if (faceCount < totalFaceCount / 2)
+            {
+                pLeft->myMeshInfos.push_back(meshInfos[i]);
+            }
+            else
+            {
+                pRight->myMeshInfos.push_back(meshInfos[i]);
+            }
+        }
     }
     else if (dim.Y() > dim.X() && dim.Y() > dim.Z())
     {
         // Split Y
-        pLeft->boundingBox->max.Y() = pRight->boundingBox->min.Y() = parentTile->boundingBox->Center().Y();
+        sort(meshInfos.begin(), meshInfos.end(), myCompareY);
+        for (i = 0; i < meshInfos.size(); ++i)
+        {
+            faceCount += meshInfos[i].myMesh->fn;
+            if (faceCount < totalFaceCount / 2)
+            {
+                pLeft->myMeshInfos.push_back(meshInfos[i]);
+            }
+            else
+            {
+                pRight->myMeshInfos.push_back(meshInfos[i]);
+            }
+        }
     }
     else
     {
         // Split Z
-        pLeft->boundingBox->max.Z() = pRight->boundingBox->min.Z() = parentTile->boundingBox->Center().Z();
-    }
-
-    for (int i = 0; i < parentTile->myMeshInfos.size(); ++i)
-    {
-        MyMeshInfo meshInfo = parentTile->myMeshInfos[i];
-        if (pLeft->boundingBox->IsInEx(meshInfo.myMesh->bbox.Center()))
+        sort(meshInfos.begin(), meshInfos.end(), myCompareZ);
+        for (i = 0; i < meshInfos.size(); ++i)
         {
-            pLeft->myMeshInfos.push_back(meshInfo);
-        }
-        else
-        {
-            pRight->myMeshInfos.push_back(meshInfo);
+            faceCount += meshInfos[i].myMesh->fn;
+            if (faceCount < totalFaceCount / 2)
+            {
+                pLeft->myMeshInfos.push_back(meshInfos[i]);
+            }
+            else
+            {
+                pRight->myMeshInfos.push_back(meshInfos[i]);
+            }
         }
     }
 

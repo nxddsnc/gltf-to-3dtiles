@@ -1,10 +1,11 @@
-#include "MergeMesh.h"
+#include "MeshOptimizer.h"
 #include "MyMesh.h"
 #include <algorithm>
 #include "vcg/complex/algorithms/clean.h"
 #include "utils.h"
 #include "tiny_gltf.h"
 #include <unordered_map>
+#include <ctime>
 using namespace tinygltf;
 using namespace std;
 struct material_hash_fn {
@@ -34,40 +35,40 @@ struct material_hash_fn {
 struct material_equal_fn {
 	bool operator()(const tinygltf::Material& m1, const tinygltf::Material& m2) const {
 		if (m1.values.size() != m2.values.size())
-		{
-			return false;
-		}
-		std::map<std::string, tinygltf::Parameter>::const_iterator it;
-		for (it = m1.values.begin(); it != m1.values.end(); ++it)
-		{
-			std::string name = it->first;
-			if (m2.values.count(name) < 1)
-				return false;
-			tinygltf::Parameter values = m2.values.at(name);
+        {
+        return false;
+        }
+        std::map<std::string, tinygltf::Parameter>::const_iterator it;
+        for (it = m1.values.begin(); it != m1.values.end(); ++it)
+        {
+            std::string name = it->first;
+            if (m2.values.count(name) < 1)
+                return false;
+            tinygltf::Parameter values = m2.values.at(name);
 
-			if (it->second.has_number_value != values.has_number_value ||
-				it->second.bool_value != values.bool_value)
-			{
-				return false;
-			}
-			if (std::abs(it->second.number_value - values.number_value) > MATERIAL_EPS)
-			{
-				return false;
-			}
-			if (it->second.number_array.size() != values.number_array.size())
-			{
-				return false;
-			}
-			for (int i = 0; i < it->second.number_array.size(); ++i)
-			{
-				if (std::abs(it->second.number_array[i] - values.number_array[i]) > MATERIAL_EPS)
-				{
-					return false;
-				}
-			}
-		}
-		return true;
-	}
+            if (it->second.has_number_value != values.has_number_value ||
+                it->second.bool_value != values.bool_value)
+            {
+                return false;
+            }
+            if (std::abs(it->second.number_value - values.number_value) > MATERIAL_EPS)
+            {
+                return false;
+            }
+            if (it->second.number_array.size() != values.number_array.size())
+            {
+                return false;
+            }
+            for (int i = 0; i < it->second.number_array.size(); ++i)
+            {
+                if (std::abs(it->second.number_array[i] - values.number_array[i]) > MATERIAL_EPS)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 };
 
 MeshOptimizer::MeshOptimizer(std::vector<MyMeshInfo> meshInfos)
@@ -78,23 +79,24 @@ MeshOptimizer::MeshOptimizer(std::vector<MyMeshInfo> meshInfos)
     m_pParams->QualityThr = .3;
     m_pParams->PreserveBoundary = false; // Perserve mesh boundary
     m_pParams->PreserveTopology = false;
+    m_pParams->OptimalPlacement = false;
 }
 
 MeshOptimizer::~MeshOptimizer()
 {
-	//for (int i = 0; i < m_mergeMeshInfos.size(); ++i)
-	//{
-	//	if (m_mergeMeshInfos[i].myMesh != NULL)
-	//	{
-	//		delete m_mergeMeshInfos[i].myMesh;
-	//		m_mergeMeshInfos[i].myMesh = NULL;
-	//	}
-	//}
-	if (m_pParams != NULL)
-	{
-		delete m_pParams;
-		m_pParams = NULL;
-	}
+    //for (int i = 0; i < m_mergeMeshInfos.size(); ++i)
+    //{
+    //	if (m_mergeMeshInfos[i].myMesh != NULL)
+    //	{
+    //		delete m_mergeMeshInfos[i].myMesh;
+    //		m_mergeMeshInfos[i].myMesh = NULL;
+    //	}
+    //}
+    if (m_pParams != NULL)
+    {
+        delete m_pParams;
+        m_pParams = NULL;
+    }
 }
 
 struct mesh_compare_fn
@@ -107,27 +109,38 @@ struct mesh_compare_fn
 
 float MeshOptimizer::DoDecimation(float targetPercentage)
 {
-	float geometryError = 0;
-	for (int i = 0; i < m_mergeMeshInfos.size(); ++i)
-	{
-		MyMesh* myMesh = m_mergeMeshInfos[i].myMesh;
-		// decimator initialization
-		vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
+    float geometryError = 0;
+    for (int i = 0; i < m_mergeMeshInfos.size(); ++i)
+    {
+        MyMesh* myMesh = m_mergeMeshInfos[i].myMesh;
+        // decimator initialization
+        vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
         std::unordered_map<MyVertex*, vector<MyVertex*>> vertexPairCache;
-		deciSession.Init<MyTriEdgeCollapse>(vertexPairCache);
-		// FIXME: If the mesh bbox is large and it's face number is ralatively few, we should not do decimation.
-		uint32_t finalSize = myMesh->fn * targetPercentage;
-		finalSize = finalSize < MIN_FACE_NUM ? MIN_FACE_NUM : finalSize;
-		deciSession.SetTargetSimplices(finalSize); // Target face number;
-		deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
-		deciSession.SetTargetOperations(100000);
-		int maxTry = 100;
-		int currentTry = 0;
-		do
-		{
-			deciSession.DoOptimization(vertexPairCache);
-			currentTry++;
-		} while (myMesh->fn > finalSize && currentTry < maxTry);
+        clock_t t1 = std::clock();
+        deciSession.Init<MyTriEdgeCollapse>(vertexPairCache);
+        clock_t t2 = std::clock();
+
+        // FIXME: If the mesh bbox is large and it's face number is ralatively few, we should not do decimation.
+        uint32_t finalSize = myMesh->fn * targetPercentage;
+        finalSize = finalSize < MIN_FACE_NUM ? MIN_FACE_NUM : finalSize;
+        deciSession.SetTargetSimplices(finalSize); // Target face number;
+        deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
+        deciSession.SetTargetOperations(100000);
+        int maxTry = 100;
+        int currentTry = 0;
+        do
+        {
+            deciSession.DoOptimization(vertexPairCache);
+            currentTry++;
+        } while (myMesh->fn > finalSize && currentTry < maxTry);
+        clock_t t3 = std::clock();
+        if ((t2 - t1) / (float)CLOCKS_PER_SEC > 1.0)
+        {
+            printf("vertex number: %d\n", myMesh->vn);
+            printf("face   number: %d\n", myMesh->fn);
+            printf("init time: %f \n", (t2 - t1) / (float)CLOCKS_PER_SEC);
+            printf("decimation time: %f\n", (t3 - t2) / (float)CLOCKS_PER_SEC);
+        }
 
 		geometryError += deciSession.currMetric;
 

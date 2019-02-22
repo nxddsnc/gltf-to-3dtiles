@@ -2,7 +2,7 @@
 #include "globals.h"
 #include "vcg\complex\algorithms\clean.h"
 #include "gltfExporter.h"
-#include "MergeMesh.h"
+#include "MeshOptimizer.h"
 #include "tiny_gltf.h"
 #include <fstream>
 #include <windows.h>
