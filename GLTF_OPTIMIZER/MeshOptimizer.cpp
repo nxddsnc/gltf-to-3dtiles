@@ -117,7 +117,7 @@ float MeshOptimizer::DoDecimation(float tileBoxMaxLength)
     {
         MyMesh* myMesh = m_mergeMeshInfos[i].myMesh;
 
-        int mergeVertexCount = tri::Clean<MyMesh>::MergeCloseVertex(*myMesh, 0.001);
+        int mergeVertexCount = tri::Clean<MyMesh>::MergeCloseVertex(*myMesh, 0.001 * tileBoxMaxLength);
         //std::printf("merge vertex count: %d", mergeVertexCount);
         // decimator initialization
         vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
@@ -132,7 +132,7 @@ float MeshOptimizer::DoDecimation(float tileBoxMaxLength)
         deciSession.SetTargetVertices(targetVertexCount); // Target face number;
         deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
         deciSession.SetTargetOperations(100000);
-        int maxTry = 100;
+        int maxTry = 1000;
         int currentTry = 0;
         do
         {

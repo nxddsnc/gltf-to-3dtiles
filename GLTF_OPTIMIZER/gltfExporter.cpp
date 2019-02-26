@@ -23,6 +23,9 @@ GltfExporter::~GltfExporter()
 
 void GltfExporter::ConstructNewModel()
 {
+    bool hasUv = false;
+    bool hasUShortIndex = false;
+    bool hasUIntIndex = false;
     {
         // FIXME: Support more than 3 bufferviews.
         BufferView arraybufferView;
@@ -56,11 +59,40 @@ void GltfExporter::ConstructNewModel()
         elementArrayUIntbufferView.byteLength = 0;
         elementArrayUIntbufferView.buffer = 0;
 
+        for (int i = 0; i < m_myMeshInfos.size(); ++i)
+        {
+            if (m_myMeshInfos[i].myMesh->hasUv)
+            {
+                hasUv = true;
+            }
+            if (m_myMeshInfos[i].myMesh->vn > 65536)
+            {
+                hasUIntIndex = true;
+            }
+            if (m_myMeshInfos[i].myMesh->vn <= 65536)
+            {
+                hasUShortIndex = true;
+            }
+        }
         m_pNewModel->bufferViews.push_back(arraybufferView);
-        m_pNewModel->bufferViews.push_back(arraybufferViewTex);
+        m_currentArrayBVIdx = m_pNewModel->bufferViews.size() - 1;
+        if (hasUv)
+        {
+            m_pNewModel->bufferViews.push_back(arraybufferViewTex);
+            m_currentArrayBVTexIdx = m_pNewModel->bufferViews.size() - 1;
+        }
         m_pNewModel->bufferViews.push_back(batchIdArrayBufferView);
-        m_pNewModel->bufferViews.push_back(elementArrayUIntbufferView);
-        m_pNewModel->bufferViews.push_back(elementArrayUShortbufferView);
+        m_currentBatchIdBVIdx = m_pNewModel->bufferViews.size() - 1;
+        if (hasUIntIndex)
+        {
+            m_pNewModel->bufferViews.push_back(elementArrayUIntbufferView);
+            m_currentUIntBVIdx = m_pNewModel->bufferViews.size() - 1;
+        }
+        if (hasUShortIndex)
+        {
+            m_pNewModel->bufferViews.push_back(elementArrayUShortbufferView);
+            m_currentUShortBVIdx = m_pNewModel->bufferViews.size() - 1;
+        }
     }
 
     Scene scene;
@@ -74,6 +106,10 @@ void GltfExporter::ConstructNewModel()
     for (int i = 0; i < m_myMeshInfos.size(); ++i)
     {
         MyMesh* myMesh = m_myMeshInfos[i].myMesh;
+        if (myMesh->vn == 0 || myMesh->fn == 0) 
+        {
+            continue;
+        }
         Material* material = m_myMeshInfos[i].material;
         int meshIdx = addMesh(material, myMesh);
         Node node;
@@ -84,11 +120,39 @@ void GltfExporter::ConstructNewModel()
     }
 
     {
-        // FIXME: Support more than 3 bufferviews.
-        m_pNewModel->bufferViews[1].byteOffset = m_currentAttributeBuffer.size();
-        m_pNewModel->bufferViews[2].byteOffset = m_currentAttributeBuffer.size() + m_currentTexBuffer.size();
-        m_pNewModel->bufferViews[3].byteOffset = m_currentAttributeBuffer.size() + m_currentTexBuffer.size() + m_currentBatchIdBuffer.size();
-        m_pNewModel->bufferViews[4].byteOffset = m_currentAttributeBuffer.size() + m_currentTexBuffer.size() + m_currentBatchIdBuffer.size() + m_currentUIntIndexBuffer.size();
+        if (hasUv)
+        {
+            m_pNewModel->bufferViews[1].byteOffset = m_currentAttributeBuffer.size();
+            m_pNewModel->bufferViews[2].byteOffset = m_currentAttributeBuffer.size() + m_currentTexBuffer.size();
+            if (hasUIntIndex)
+            {
+                m_pNewModel->bufferViews[3].byteOffset = m_currentAttributeBuffer.size() + m_currentTexBuffer.size() + m_currentBatchIdBuffer.size();
+                if (hasUShortIndex)
+                {
+                    m_pNewModel->bufferViews[4].byteOffset = m_currentAttributeBuffer.size() + m_currentTexBuffer.size() + m_currentBatchIdBuffer.size() + m_currentUIntIndexBuffer.size();
+                }
+            }
+            else
+            {
+                m_pNewModel->bufferViews[3].byteOffset = m_currentAttributeBuffer.size() + m_currentTexBuffer.size() + m_currentBatchIdBuffer.size();
+            }
+        }
+        else
+        {
+            m_pNewModel->bufferViews[1].byteOffset = m_currentAttributeBuffer.size();
+            if (hasUIntIndex)
+            {
+                m_pNewModel->bufferViews[2].byteOffset = m_currentAttributeBuffer.size() + m_currentBatchIdBuffer.size();
+                if (hasUShortIndex)
+                {
+                    m_pNewModel->bufferViews[3].byteOffset = m_currentAttributeBuffer.size() + m_currentBatchIdBuffer.size() + m_currentUIntIndexBuffer.size();
+                }
+            }
+            else
+            {
+                m_pNewModel->bufferViews[2].byteOffset = m_currentAttributeBuffer.size() + m_currentBatchIdBuffer.size();
+            }
+        }
     }
 
     Buffer buffer;
@@ -347,30 +411,30 @@ int GltfExporter::addBufferView(AccessorType type, size_t& byteOffset)
     {
     case POSITION:
     case NORMAL:
-        byteOffset = m_pNewModel->bufferViews[0].byteLength;
-        m_pNewModel->bufferViews[0].byteLength += byteLength;
-        return 0;
+        byteOffset = m_pNewModel->bufferViews[m_currentArrayBVIdx].byteLength;
+        m_pNewModel->bufferViews[m_currentArrayBVIdx].byteLength += byteLength;
+        return m_currentArrayBVIdx;
     case UV:
-        byteOffset = m_pNewModel->bufferViews[1].byteLength;
-        m_pNewModel->bufferViews[1].byteLength += byteLength;
-        return 1;
+        byteOffset = m_pNewModel->bufferViews[m_currentArrayBVTexIdx].byteLength;
+        m_pNewModel->bufferViews[m_currentArrayBVTexIdx].byteLength += byteLength;
+        return m_currentArrayBVTexIdx;
     case INDEX:
         if (m_currentMesh->vn > 65536)
         {
-            byteOffset = m_pNewModel->bufferViews[3].byteLength;
-            m_pNewModel->bufferViews[3].byteLength += byteLength;
-            return 3;
+            byteOffset = m_pNewModel->bufferViews[m_currentUIntBVIdx].byteLength;
+            m_pNewModel->bufferViews[m_currentUIntBVIdx].byteLength += byteLength;
+            return m_currentUIntBVIdx;
         }
         else
         {
-            byteOffset = m_pNewModel->bufferViews[4].byteLength;
-            m_pNewModel->bufferViews[4].byteLength += byteLength;
-            return 4;
+            byteOffset = m_pNewModel->bufferViews[m_currentUShortBVIdx].byteLength;
+            m_pNewModel->bufferViews[m_currentUShortBVIdx].byteLength += byteLength;
+            return m_currentUShortBVIdx;
         }
     case BATCH_ID:
-        byteOffset = m_pNewModel->bufferViews[2].byteLength;
-        m_pNewModel->bufferViews[2].byteLength += byteLength;
-        return 2;
+        byteOffset = m_pNewModel->bufferViews[m_currentBatchIdBVIdx].byteLength;
+        m_pNewModel->bufferViews[m_currentBatchIdBVIdx].byteLength += byteLength;
+        return m_currentBatchIdBVIdx;
     default:
         break;
     }

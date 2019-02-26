@@ -63,4 +63,11 @@ private:
     MyMesh* m_currentMesh;
 
     tinygltf::TinyGLTF* m_pTinyGTLF;
+
+    // index of the bufferView
+    int m_currentArrayBVIdx;
+    int m_currentArrayBVTexIdx;
+    int m_currentBatchIdBVIdx;
+    int m_currentUIntBVIdx;
+    int m_currentUShortBVIdx;
 };
