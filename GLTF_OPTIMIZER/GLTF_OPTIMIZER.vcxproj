@@ -103,7 +103,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <SDLCheck>
       </SDLCheck>
-      <AdditionalIncludeDirectories>./tinyGltf;$(VCG_LIB);$(VCG_LIB)\eigenlib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./tinyGltf;$(VCGLIB_ORIGIN);$(VCGLIB_ORIGIN)\eigenlib</AdditionalIncludeDirectories>
       <CompileAs>CompileAsCpp</CompileAs>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -140,7 +140,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_NONSTDC_NO_DEPRECATE ;NDEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>./tinyGltf;$(VCG_LIB);$(VCG_LIB)\eigenlib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./tinyGltf;$(VCGLIB_ORIGIN);$(VCGLIB_ORIGIN)\eigenlib</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>

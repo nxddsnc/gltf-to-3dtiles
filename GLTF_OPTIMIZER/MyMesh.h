@@ -37,13 +37,20 @@ class MyEdge : public Edge< MyUsedTypes> {};
 
 typedef BasicVertexPair<MyVertex> VertexPair;
 
-class MyFace : public Face< MyUsedTypes,
+class MyFace : public Face < MyUsedTypes,
     face::VFAdj,
+    face::FFAdj,
+    face::Normal3f,
+    face::WedgeRealNormal3f,
     face::VertexRef,
     face::BitFlags > {};
 
 // the main mesh class
-class MyMesh : public vcg::tri::TriMesh<std::vector<MyVertex>, std::vector<MyFace> > {};
+class MyMesh : public vcg::tri::TriMesh<std::vector<MyVertex>, std::vector<MyFace> > 
+{
+public:
+        bool hasUv;
+};
 
 
 class MyTriEdgeCollapse : public vcg::tri::TriEdgeCollapseQuadric< MyMesh, VertexPair, MyTriEdgeCollapse, QInfoStandard<MyVertex>  > {
@@ -74,5 +81,6 @@ struct TileInfo
     std::vector<TileInfo*> children;
     vcg::Box3f* boundingBox;
     float geometryError;
+    int originalVertexCount;
     std::string contentUri;
 };

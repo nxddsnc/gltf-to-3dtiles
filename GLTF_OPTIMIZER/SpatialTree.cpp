@@ -135,7 +135,16 @@ void SpatialTree::splitTreeNode(TileInfo* parentTile)
 
     m_currentDepth++;
     Point3f dim = parentTile->boundingBox->Dim();
-    if (parentTile->myMeshInfos.size() < MIN_TREE_NODE || m_currentDepth > g_settings.maxTreeDepth)
+    
+    int i;
+    int totalVertexCount = 0;
+    for (i = 0; i < parentTile->myMeshInfos.size(); ++i)
+    {
+        totalVertexCount += parentTile->myMeshInfos[i].myMesh->vn;
+    }
+    parentTile->originalVertexCount = totalVertexCount;
+
+    if (parentTile->myMeshInfos.size() < MIN_TREE_NODE || m_currentDepth > g_settings.maxTreeDepth || totalVertexCount <= g_settings.vertexCountPerTile)
     {
         m_currentDepth--;
         return;
@@ -147,21 +156,16 @@ void SpatialTree::splitTreeNode(TileInfo* parentTile)
     pRight->boundingBox  = new Box3f(*parentTile->boundingBox);
 
     vector<MyMeshInfo> meshInfos = parentTile->myMeshInfos;
-    int totalFaceCount = 0;
-    int faceCount = 0;
-    int i;
-    for (i = 0; i < meshInfos.size(); ++i)
-    {
-        totalFaceCount += meshInfos[i].myMesh->fn;
-    }
+    int vertexCount = 0;
+
     if (dim.X() > dim.Y() && dim.X() > dim.Z())
     {
         // Split X
         sort(meshInfos.begin(), meshInfos.end(), myCompareX);
         for (i = 0; i < meshInfos.size(); ++i)
         {
-            faceCount += meshInfos[i].myMesh->fn;
-            if (faceCount < totalFaceCount / 2)
+            vertexCount += meshInfos[i].myMesh->vn;
+            if (vertexCount < totalVertexCount / 2)
             {
                 pLeft->myMeshInfos.push_back(meshInfos[i]);
             }
@@ -177,8 +181,8 @@ void SpatialTree::splitTreeNode(TileInfo* parentTile)
         sort(meshInfos.begin(), meshInfos.end(), myCompareY);
         for (i = 0; i < meshInfos.size(); ++i)
         {
-            faceCount += meshInfos[i].myMesh->fn;
-            if (faceCount < totalFaceCount / 2)
+            vertexCount += meshInfos[i].myMesh->vn;
+            if (vertexCount < totalVertexCount / 2)
             {
                 pLeft->myMeshInfos.push_back(meshInfos[i]);
             }
@@ -194,8 +198,8 @@ void SpatialTree::splitTreeNode(TileInfo* parentTile)
         sort(meshInfos.begin(), meshInfos.end(), myCompareZ);
         for (i = 0; i < meshInfos.size(); ++i)
         {
-            faceCount += meshInfos[i].myMesh->fn;
-            if (faceCount < totalFaceCount / 2)
+            vertexCount += meshInfos[i].myMesh->vn;
+            if (vertexCount < totalVertexCount / 2)
             {
                 pLeft->myMeshInfos.push_back(meshInfos[i]);
             }

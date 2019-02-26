@@ -2,10 +2,12 @@
 #include "MyMesh.h"
 #include <algorithm>
 #include "vcg/complex/algorithms/clean.h"
+#include "vcg/complex/algorithms/crease_cut.h"
 #include "utils.h"
 #include "tiny_gltf.h"
 #include <unordered_map>
 #include <ctime>
+#include "globals.h"
 using namespace tinygltf;
 using namespace std;
 struct material_hash_fn {
@@ -84,14 +86,14 @@ MeshOptimizer::MeshOptimizer(std::vector<MyMeshInfo> meshInfos)
 
 MeshOptimizer::~MeshOptimizer()
 {
-    //for (int i = 0; i < m_mergeMeshInfos.size(); ++i)
-    //{
-    //	if (m_mergeMeshInfos[i].myMesh != NULL)
-    //	{
-    //		delete m_mergeMeshInfos[i].myMesh;
-    //		m_mergeMeshInfos[i].myMesh = NULL;
-    //	}
-    //}
+    for (int i = 0; i < m_mergeMeshInfos.size(); ++i)
+    {
+    	if (m_mergeMeshInfos[i].myMesh != NULL)
+    	{
+    		delete m_mergeMeshInfos[i].myMesh;
+    		m_mergeMeshInfos[i].myMesh = NULL;
+    	}
+    }
     if (m_pParams != NULL)
     {
         delete m_pParams;
@@ -107,46 +109,61 @@ struct mesh_compare_fn
     }
 };
 
-float MeshOptimizer::DoDecimation(float targetPercentage)
+float MeshOptimizer::DoDecimation(float tileBoxMaxLength)
 {
-    float geometryError = 0;
+    //float geometryError = 0;
+    //float maxBoxDiag = 0;
     for (int i = 0; i < m_mergeMeshInfos.size(); ++i)
     {
         MyMesh* myMesh = m_mergeMeshInfos[i].myMesh;
+
+        int mergeVertexCount = tri::Clean<MyMesh>::MergeCloseVertex(*myMesh, 0.001);
+        //std::printf("merge vertex count: %d", mergeVertexCount);
         // decimator initialization
         vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
-        std::unordered_map<MyVertex*, vector<MyVertex*>> vertexPairCache;
         clock_t t1 = std::clock();
-        deciSession.Init<MyTriEdgeCollapse>(vertexPairCache);
+        deciSession.Init<MyTriEdgeCollapse>();
         clock_t t2 = std::clock();
 
         // FIXME: If the mesh bbox is large and it's face number is ralatively few, we should not do decimation.
-        uint32_t finalSize = myMesh->fn * targetPercentage;
-        finalSize = finalSize < MIN_FACE_NUM ? MIN_FACE_NUM : finalSize;
-        deciSession.SetTargetSimplices(finalSize); // Target face number;
+        //uint32_t finalSize = myMesh->fn * tileBoxMaxLength;
+        //finalSize = finalSize < MIN_FACE_NUM ? MIN_FACE_NUM : finalSize;
+        int targetVertexCount = g_settings.vertexCountPerTile;
+        deciSession.SetTargetVertices(targetVertexCount); // Target face number;
         deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
         deciSession.SetTargetOperations(100000);
         int maxTry = 100;
         int currentTry = 0;
         do
         {
-            deciSession.DoOptimization(vertexPairCache);
+            deciSession.DoOptimization();
             currentTry++;
-        } while (myMesh->fn > finalSize && currentTry < maxTry);
+        } while (myMesh->vn > targetVertexCount && currentTry < maxTry);
         clock_t t3 = std::clock();
-        if ((t2 - t1) / (float)CLOCKS_PER_SEC > 1.0)
-        {
-            printf("vertex number: %d\n", myMesh->vn);
-            printf("face   number: %d\n", myMesh->fn);
-            printf("init time: %f \n", (t2 - t1) / (float)CLOCKS_PER_SEC);
-            printf("decimation time: %f\n", (t3 - t2) / (float)CLOCKS_PER_SEC);
-        }
+        //if ((t2 - t1) / (float)CLOCKS_PER_SEC > 1.0)
+        //{
+        //    printf("vertex number: %d\n", myMesh->vn);
+        //    printf("face   number: %d\n", myMesh->fn);
+        //    printf("init time: %f \n", (t2 - t1) / (float)CLOCKS_PER_SEC);
+        //    printf("decimation time: %f\n", (t3 - t2) / (float)CLOCKS_PER_SEC);
+        //}
 
-		geometryError += deciSession.currMetric;
-
-		tri::Clean<MyMesh>::RemoveUnreferencedVertex(*myMesh);
+        //if (maxBoxDiag < myMesh->bbox.Diag())
+        //{
+        //    geometryError = deciSession.currMetric;
+        //    maxBoxDiag = myMesh->bbox.Diag();
+        //}
+        tri::Clean<MyMesh>::RemoveUnreferencedVertex(*myMesh);
+        tri::UpdateTopology<MyMesh>::FaceFace(*myMesh);
+        //tri::UpdateNormal<MyMesh>::PerVertex(*myMesh);
+        tri::UpdateNormal<MyMesh>::PerFace(*myMesh);
+        tri::CreaseCut<MyMesh>(*myMesh, math::ToRad(45.0f));
+        tri::UpdateNormal<MyMesh>::PerVertex(*myMesh);
+        tri::UpdateNormal<MyMesh>::NormalizePerVertex(*myMesh);
+        
+        
 	}
-	return geometryError;
+    return tileBoxMaxLength / 16.0f;
 }
 
 void MeshOptimizer::DoMerge()
@@ -202,6 +219,7 @@ void MeshOptimizer::mergeSameMaterialMeshes(Material* material, std::vector<MyMe
 			MyMeshInfo meshInfo;
 			meshInfo.material = material;
 			meshInfo.myMesh = mergedMesh;
+            mergedMesh = new MyMesh();
 			m_mergeMeshInfos.push_back(meshInfo);
 			totalVertex = 0;
 			totalFace = 0;

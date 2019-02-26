@@ -150,8 +150,13 @@ void LodExporter::traverseExportTile(TileInfo* tileInfo)
 
     MeshOptimizer meshOptimizer = MeshOptimizer(tileInfo->myMeshInfos);
     meshOptimizer.DoMerge();
-	meshOptimizer.DoDecimation(std::pow(0.5, g_settings.tileLevel - m_currentTileLevel));
-	
+  
+    float maxLength = max(max(tileInfo->boundingBox->DimX(), tileInfo->boundingBox->DimY()), tileInfo->boundingBox->DimZ());
+    tileInfo->geometryError = meshOptimizer.DoDecimation(maxLength);
+    if (m_maxGeometricError < tileInfo->geometryError) {
+        m_maxGeometricError = tileInfo->geometryError;
+    }
+
 	GltfExporter gltfExporter = GltfExporter(meshOptimizer.GetMergedMeshInfos(), bufferName);
 	gltfExporter.ConstructNewModel();
 	Model* pNewModel = gltfExporter.GetNewModel();
