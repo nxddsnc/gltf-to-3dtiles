@@ -3,6 +3,9 @@
 #include <algorithm>
 #include "vcg/complex/algorithms/clean.h"
 #include "vcg/complex/algorithms/crease_cut.h"
+#include <vcg/complex/algorithms/clustering.h>
+#include<vcg/complex/algorithms/isotropic_remeshing.h>
+#include<vcg/complex/algorithms/create/ball_pivoting.h>
 #include "utils.h"
 #include "tiny_gltf.h"
 #include <unordered_map>
@@ -109,15 +112,72 @@ struct mesh_compare_fn
     }
 };
 
-float MeshOptimizer::DoDecimation(float tileBoxMaxLength)
+bool callback(int percent, const char *str)
+{
+    //cout << "str: " << str << " " << percent << "%\n";
+    return true;
+}
+float MeshOptimizer::DoDecimation(float tileBoxMaxLength, bool remesh)
 {
     //float geometryError = 0;
     //float maxBoxDiag = 0;
+    int totalFaceCount = 0;
+    for (int i = 0; i < m_mergeMeshInfos.size(); i++) 
+    {
+        totalFaceCount += m_mergeMeshInfos[i].myMesh->fn;
+    }
+    if (totalFaceCount == 0)
+    {
+        return 0.0f;
+    }
+    float decimationRatio = (float)g_settings.faceCountPerTile / (float)totalFaceCount;
+    if (decimationRatio >= 1.0)
+    {
+        return 0;
+    }
+    int totalFaceBeforeSplit = 0;
     for (int i = 0; i < m_mergeMeshInfos.size(); ++i)
     {
         MyMesh* myMesh = m_mergeMeshInfos[i].myMesh;
 
-        int mergeVertexCount = tri::Clean<MyMesh>::MergeCloseVertex(*myMesh, 0.001 * tileBoxMaxLength);
+        if (remesh)
+        {
+            MyMesh* sampleMesh = new MyMesh();
+            VertexIterator vi = Allocator<MyMesh>::AddVertices(*sampleMesh, myMesh->vn);
+            for (int ii = 0; ii < myMesh->vert.size(); ++ii)
+            {
+                if (myMesh->vert[ii].IsD())
+                {
+                    continue;
+                }
+
+                (*vi) = myMesh->vert[ii];
+                ++vi;
+            }
+
+            float radius = tileBoxMaxLength / 10000;
+            float minEdge = 0.001;
+            float angle = M_PI / 4;
+            tri::BallPivoting<MyMesh> ballPivoting = tri::BallPivoting<MyMesh>(*sampleMesh, radius, minEdge, angle);
+
+            ballPivoting.BuildMesh(callback);
+
+            delete myMesh;
+            myMesh = sampleMesh;
+            m_mergeMeshInfos[i].myMesh = myMesh;
+        }
+        //vcg::tri::Clustering<MyMesh, vcg::tri::AverageColorCell<MyMesh> > Grid;
+        //Grid.DuplicateFaceParam = true;
+        //Grid.Init(myMesh->bbox, 10000);
+
+        //Grid.AddMesh(*myMesh);
+        //Grid.ExtractMesh(*myMesh);
+        //printf("origin vertex: %d\n", myMesh->vn);
+        //int mergeVertexCount = tri::Clean<MyMesh>::MergeCloseVertex(*myMesh, 0.001 * tileBoxMaxLength);
+        //printf("after merge: %d\n", myMesh->vn);
+
+        //tri::UpdateTopology<MyMesh>::FaceVert
+        //printf("after split: %d\n", myMesh->vn);
         //std::printf("merge vertex count: %d", mergeVertexCount);
         // decimator initialization
         vcg::LocalOptimization<MyMesh> deciSession(*myMesh, m_pParams);
@@ -128,17 +188,17 @@ float MeshOptimizer::DoDecimation(float tileBoxMaxLength)
         // FIXME: If the mesh bbox is large and it's face number is ralatively few, we should not do decimation.
         //uint32_t finalSize = myMesh->fn * tileBoxMaxLength;
         //finalSize = finalSize < MIN_FACE_NUM ? MIN_FACE_NUM : finalSize;
-        int targetVertexCount = g_settings.vertexCountPerTile;
-        deciSession.SetTargetVertices(targetVertexCount); // Target face number;
-        deciSession.SetTimeBudget(0.5f); // Time budget for each cycle
-        deciSession.SetTargetOperations(100000);
-        int maxTry = 1000;
+        int targetFaceCount = myMesh->fn * decimationRatio;
+        deciSession.SetTargetSimplices(targetFaceCount); // Target face number;
+        deciSession.SetTimeBudget(1.5f); // Time budget for each cycle
+        deciSession.SetTargetOperations(10000000000);
+        int maxTry = 1000000;
         int currentTry = 0;
         do
         {
             deciSession.DoOptimization();
             currentTry++;
-        } while (myMesh->vn > targetVertexCount && currentTry < maxTry);
+        } while (myMesh->fn > targetFaceCount && currentTry < maxTry);
         clock_t t3 = std::clock();
         //if ((t2 - t1) / (float)CLOCKS_PER_SEC > 1.0)
         //{
@@ -153,16 +213,31 @@ float MeshOptimizer::DoDecimation(float tileBoxMaxLength)
         //    geometryError = deciSession.currMetric;
         //    maxBoxDiag = myMesh->bbox.Diag();
         //}
-        tri::Clean<MyMesh>::RemoveUnreferencedVertex(*myMesh);
         tri::UpdateTopology<MyMesh>::FaceFace(*myMesh);
+        //tri::Clean<MyMesh>::SplitNonManifoldVertex(*myMesh, 0.0);
+        //tri::Clean<MyMesh>::RemoveNonManifoldFace(*myMesh);
+        //tri::Clean<MyMesh>::RemoveNonManifoldVertex(*myMesh);
+        //tri::Clean<MyMesh>::RemoveUnreferencedVertex(*myMesh);
+        //tri::Clean<MyMesh>::RemoveDegenerateFace(*myMesh);
+
+        tri::Clean<MyMesh>::RemoveUnreferencedVertex(*myMesh);
+
+        totalFaceBeforeSplit += myMesh->fn;
+        //printf("after decimation: %d\n", myMesh->vn);
+        //tri::UpdateTopology<MyMesh>::FaceFace(*myMesh);
         //tri::UpdateNormal<MyMesh>::PerVertex(*myMesh);
-        tri::UpdateNormal<MyMesh>::PerFace(*myMesh);
-        tri::CreaseCut<MyMesh>(*myMesh, math::ToRad(45.0f));
-        tri::UpdateNormal<MyMesh>::PerVertex(*myMesh);
-        tri::UpdateNormal<MyMesh>::NormalizePerVertex(*myMesh);
-        
-        
+        //tri::UpdateNormal<MyMesh>::PerFace(*myMesh);
+        //tri::Clean<MyMesh>::RemoveDegenerateFace(*myMesh);
+        //tri::CreaseCut<MyMesh>(*myMesh, math::ToRad(45.0f));
+        //printf("after crease: %d\n", myMesh->vn);
+        //tri::UpdateNormal<MyMesh>::PerVertexAngleWeighted(*myMesh);
+        //tri::UpdateNormal<MyMesh>::PerVertex(*myMesh);
+        //tri::UpdateNormal<MyMesh>::NormalizePerVertex(*myMesh);
+
+        totalFaceCount += myMesh->fn;
 	}
+    printf("tile totalFaceCount before split: %d\n", totalFaceBeforeSplit);
+    printf("tile totalFaceCount after Decimation: %d\n", totalFaceCount);
     return tileBoxMaxLength / 16.0f;
 }
 

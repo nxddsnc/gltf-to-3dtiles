@@ -8,7 +8,7 @@ struct GlobalSetting
 	bool writeBinary;
     bool printLog;
     uint32_t batchLength;
-    int vertexCountPerTile;
+    int faceCountPerTile;
     float mergeVertexThr = 0.001;
 };
 

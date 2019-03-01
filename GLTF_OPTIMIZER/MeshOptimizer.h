@@ -25,7 +25,7 @@ public:
 	~MeshOptimizer();
 
 	void DoMerge();
-    float DoDecimation(float targetPercetage);
+    float DoDecimation(float targetPercetage, bool remesh = false);
 	std::vector<MyMeshInfo> GetMergedMeshInfos() { return m_mergeMeshInfos; }
 private:
     void mergeSameMaterialMeshes(tinygltf::Material* material, std::vector<MyMesh*> meshes);

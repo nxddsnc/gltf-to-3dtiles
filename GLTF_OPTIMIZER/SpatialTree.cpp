@@ -144,7 +144,7 @@ void SpatialTree::splitTreeNode(TileInfo* parentTile)
     }
     parentTile->originalVertexCount = totalVertexCount;
 
-    if (parentTile->myMeshInfos.size() < MIN_TREE_NODE || m_currentDepth > g_settings.maxTreeDepth || totalVertexCount <= g_settings.vertexCountPerTile)
+    if (parentTile->myMeshInfos.size() < MIN_TREE_NODE || m_currentDepth > g_settings.maxTreeDepth || totalVertexCount <= g_settings.faceCountPerTile)
     {
         m_currentDepth--;
         return;

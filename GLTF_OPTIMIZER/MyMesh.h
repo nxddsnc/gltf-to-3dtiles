@@ -40,6 +40,7 @@ typedef BasicVertexPair<MyVertex> VertexPair;
 class MyFace : public Face < MyUsedTypes,
     face::VFAdj,
     face::FFAdj,
+    face::Mark,
     face::Normal3f,
     face::WedgeRealNormal3f,
     face::VertexRef,

@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 	g_settings.tileLevel = TILE_LEVEL;
 	g_settings.writeBinary = false;
     g_settings.printLog = true;
-    g_settings.vertexCountPerTile = 655360;
+    g_settings.faceCountPerTile = 655360;
     for (int i = 1; i < argc; ++i)
 	{
         if (std::strcmp(argv[i], "-v") == 0)
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
                 std::printf("Input error\n");
                 return -1;
             }
-            g_settings.vertexCountPerTile = atoi(argv[i + 1]);
+            g_settings.faceCountPerTile = atoi(argv[i + 1]);
         }
         if (std::strcmp(argv[i], "-i") == 0)
         {
