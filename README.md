@@ -37,8 +37,8 @@ Currently, it do not support all gltf file formats.
     	-childElement
             -childInstance
      			-childMesh
-# Notice
-##### It is just a test project yet and the gltf file format is limited to the structure as it was in https://github.com/nxddsnc/GLTF-Optimizer/tree/master/data with no textures supported yet. And currently I am working on branch dev#mergeMesh.
+# Note
+##### It is just a test project yet and with no textures supported yet. And currently I am working on issue#8.
 ##### If you have any questions, please contact me(fanqileiOGL@163.com).
 
 
