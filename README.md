@@ -4,6 +4,11 @@ A command line tool to convert gltf(glb) file to 3d tiles format.
 # Usage example
 GLTF_OPTIMIZER.exe -i "../data/test.gltf" -o "../data/output"
 
+# Demo
+Here is the source gltf model and the generated result.
+https://pan.baidu.com/s/10VI1h9dORIFFDF8CVSRdnQ 
+code: pw6l 
+
 # Build
 git clone -b devel https://github.com/cnr-isti-vclab/vcglib.git
 
