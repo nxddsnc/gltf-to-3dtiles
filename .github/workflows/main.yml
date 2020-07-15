@@ -52,4 +52,24 @@ jobs:
           SET VCGLIB_ORIGIN=%GITHUB_WORKSPACE%\vcglib
           "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin\amd64\MSBuild.exe" %GITHUB_WORKSPACE%\gltf-to-3dtiles\GLTF_OPTIMIZER\GLTF_OPTIMIZER.vcxproj  /p:AdditionalIncludePaths="%GITHUB_WORKSPACE%\vcglib"  /p:UseEnv=true /p:PlatformToolset=v140 /p:PreferredToolArchitecture=x64 /p:VisualStudioVersion=15.0 /p:Configuration=Release
 
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: master-${{ github.sha }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: true
+    - name: Upload Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./gltf-to-3dtiles/GLTF_OPTIMIZER/x64/Release/GLTF_OPTIMIZER.exe
+        asset_name: GLTF_OPTIMIZER.exe
+        asset_content_type: application/octet-stream
 
