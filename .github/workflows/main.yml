@@ -1,0 +1,75 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: windows-2016
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    # - uses: microsoft/setup-msbuild@v1.0.0
+    # - uses: microsoft/virtual-environments
+    
+    # checks out vcgs 
+    - uses: actions/checkout@v2
+      with:
+        repository: cnr-isti-vclab/vcglib
+        path: vcglib
+        ref: devel
+    
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+      with:
+        path: gltf-to-3dtiles
+
+    # - name: echo files
+    #   run: |
+    #       cd $Env.GITHUB_WORKSPACE
+    #       tree /f $Env.GITHUB_WORKSPACE
+
+    - name: Setup MSBuild.exe
+      uses: warrenbuckley/Setup-MSBuild@v1
+
+    - name: Build Seatbelt
+      shell: cmd
+      run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cd "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin\"
+          SET VCG_LIB=%GITHUB_WORKSPACE%\vcglib
+          SET VCGLIB=%GITHUB_WORKSPACE%\vcglib
+          SET VCGLIB_ORIGIN=%GITHUB_WORKSPACE%\vcglib
+          "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin\amd64\MSBuild.exe" %GITHUB_WORKSPACE%\gltf-to-3dtiles\GLTF_OPTIMIZER\GLTF_OPTIMIZER.vcxproj  /p:AdditionalIncludePaths="%GITHUB_WORKSPACE%\vcglib"  /p:UseEnv=true /p:PlatformToolset=v140 /p:PreferredToolArchitecture=x64 /p:VisualStudioVersion=15.0 /p:Configuration=Release
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: master-${{ github.sha }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: true
+    - name: Upload Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./gltf-to-3dtiles/GLTF_OPTIMIZER/x64/Release/GLTF_OPTIMIZER.exe
+        asset_name: GLTF_OPTIMIZER.exe
+        asset_content_type: application/octet-stream
+
