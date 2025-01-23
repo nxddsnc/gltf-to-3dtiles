@@ -1,4 +1,11 @@
 .vs/
+.vscode/
+.idea/
+build/
+.cache/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
 GLTF_OPTIMIZER.VC.VC.opendb
 GLTF_OPTIMIZER.VC.db
 GLTF_OPTIMIZER/x64/
