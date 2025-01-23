@@ -3,6 +3,7 @@
 .idea/
 build/
 .cache/
+vcpkg_installed/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
