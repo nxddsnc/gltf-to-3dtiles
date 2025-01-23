@@ -1,4 +1,4 @@
-#include "GltfExporter.h"
+#include "gltfExporter.h"
 #include "tiny_gltf.h"
 #include "globals.h"
 #include "utils.h"
