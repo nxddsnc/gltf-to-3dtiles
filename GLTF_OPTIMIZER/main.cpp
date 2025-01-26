@@ -94,7 +94,15 @@ int main(int argc, char *argv[])
     TinyGLTF* tinyGltf = new TinyGLTF;
     std::string err;
     std::string warn;
-    bool ret = tinyGltf->LoadASCIIFromFile(model, &err, &warn, g_settings.inputPath);
+	std::printf("Loading model from %s\n", g_settings.inputPath);
+    bool ret = false;
+	if (StrEndsWith(g_settings.inputPath, ".glb"))
+	{
+		ret = tinyGltf->LoadBinaryFromFile(model, &err, &warn, g_settings.inputPath);
+	} else if (StrEndsWith(g_settings.inputPath, ".gltf"))
+	{
+		ret = tinyGltf->LoadASCIIFromFile(model, &err, &warn, g_settings.inputPath);
+	}
 
     if (g_settings.printLog)
     {

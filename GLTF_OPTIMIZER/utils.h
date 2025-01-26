@@ -43,3 +43,4 @@ void ConcatMyMesh(MyMesh* dest, MyMesh* src);
 
 void GetNodeMeshInfos(tinygltf::Model* model, tinygltf::Node* node, std::vector<MeshInfo>& meshInfos, Matrix44f* parentMatrix = NULL);
 
+bool StrEndsWith(const char *str, const char *suffix);
