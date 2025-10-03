@@ -29,7 +29,7 @@ public:
     ~GltfExporter();
     void ConstructNewModel();
     tinygltf::Model* GetNewModel() { return m_pNewModel; }
-    bool GltfExporter::DoExport(std::string filepath, bool binary);
+    bool DoExport(std::string filepath, bool binary);
 private:
     int addMesh(tinygltf::Material* material, MyMesh* myMesh);
     void addPrimitive(tinygltf::Primitive* primitive);

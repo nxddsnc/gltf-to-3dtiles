@@ -1,0 +1,10 @@
+{
+    "dependencies": [
+        {
+            "name": "boost-filesystem"
+        },
+        {
+            "name": "fmt"
+        }
+    ]
+}

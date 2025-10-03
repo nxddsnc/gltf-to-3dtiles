@@ -92,3 +92,9 @@ void ConcatMyMesh(MyMesh* dest, MyMesh* src)
 		++fi;
 	}
 }
+
+bool StrEndsWith(const char* str, const char* suffix)
+{
+	std::string s(str);
+	return s.size() >= std::strlen(suffix) && s.compare(s.size() - std::strlen(suffix), std::strlen(suffix), suffix) == 0;
+}

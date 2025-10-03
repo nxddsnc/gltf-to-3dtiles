@@ -1,5 +1,5 @@
 #pragma once
-#include "vcg\math\matrix44.h"
+#include "vcg/math/matrix44.h"
 #include "MyMesh.h"
 #include <unordered_map>
 using namespace vcg;
@@ -43,3 +43,4 @@ void ConcatMyMesh(MyMesh* dest, MyMesh* src);
 
 void GetNodeMeshInfos(tinygltf::Model* model, tinygltf::Node* node, std::vector<MeshInfo>& meshInfos, Matrix44f* parentMatrix = NULL);
 
+bool StrEndsWith(const char *str, const char *suffix);
